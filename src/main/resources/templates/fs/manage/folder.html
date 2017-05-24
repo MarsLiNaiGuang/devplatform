@@ -1,0 +1,1037 @@
+<#assign base=request.contextPath />
+<div id="fsLayoutId${FOLDER_ID!}" class="easyui-layout" fit="true">
+  <!-- 文件管理面板 -->
+  <div class="easyui-panel" data-options="region:'west',split:true" id="panelFSAuth" title="目录" style="width: 300px;">
+    <table id="dgFSFolderList${FOLDER_ID!}" class="easyui-treegrid" url="<#if FOLDER_ID??>${base}/fs/folder/listfolder/${FOLDER_ID}<#else>${base}/fs/folder/list</#if>" method="GET" fitColumns="true" toolbar="#fsFolderListToolbar${FOLDER_ID!}" singleSelect="true" checkOnSelect="true" rownumbers="true" collapse="true" fit="true" data-options="loadMsg:'加载中...',idField:'id', treeField:'name',loadFilter: function(data){
+          var folderId = '${FOLDER_ID!}';
+          if(data && data.total > 0){
+            window.folderListCache = JSON.parse(JSON.stringify(data));
+            $.each(data.rows,function(index,item){
+              /** if(folderId){
+                item.state = 'open';
+                item.iconCls = 'rsutiltree glyphicon glyphicon-folder-open folder';
+                item._parentId = item.pid;
+              }else{
+                item.state = 'open';
+                item.iconCls = 'rsutiltree glyphicon glyphicon-folder-open folder';
+                item._parentId = item.pid;
+              } **/
+              item.state = 'open';
+              item.iconCls = 'rsutiltree glyphicon glyphicon-folder-open folder';
+              if(item.id === folderId){
+                item._parentId = null;
+              }else{
+                item._parentId = item.pid;
+              }
+            })
+          }
+          return data;
+        },onClickRow:rs.dev.fs${FOLDER_ID!}.getFilesInFolder">
+      <thead>
+        <tr>
+          <th field="name" width="250" halign="center">文件夹名称</th>
+          <!-- <th field="remark" width="100" halign="center" align="center">备注</th> -->
+          <th field="opt" width="150" halign="center" align="center" data-options="formatter:function(value,data){
+              var authType = data.auth.toString(2).split('');
+              if(authType.length < 3){
+                for(var i = 0;i <= 3-authType.length;i++){
+                  authType.unshift('0');
+                }
+              }
+              var str = '';
+              if(authType[0] == 1 && data.id !== '${FOLDER_ID!}'){
+                str = '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.fs${FOLDER_ID!}.deleteFolder()\'>删除</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.fs${FOLDER_ID!}.edit()\'>修改</a>]';
+              }
+              return str;
+            }">操作</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+  <div class="easyui-panel" data-options="region:'center'" style="padding: 0;" title="文件列表">
+    <table id="dgFSFileList${FOLDER_ID!}"></table>
+  </div>
+</div>
+<!-- 文件夹面板按钮组 -->
+<div id="fsFolderListToolbar${FOLDER_ID!}">
+  <a id="fsBtnAddFolder${FOLDER_ID!}" href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="rs.dev.fs${FOLDER_ID!}.add()">新增文件夹</a>
+  <a id="fsBtnAddress${FOLDER_ID!}" href="javascript:void(0)" class="easyui-linkbutton" iconCls="rsutiltree glyphicon glyphicon-zoom-in" plain="true" onclick="rs.dev.fs${FOLDER_ID!}.popMenuAddressWindow();">配置地址</a>
+  <a id="fsBtnStorage${FOLDER_ID!}" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="rs.dev.fs${FOLDER_ID!}.openChangeStorageTypeDL()">修改文件存储方式</a>
+  <a id="fsBtnStorage${FOLDER_ID!}" class="easyui-linkbutton" iconCls="icon-reload" plain="true" onclick="$('#dgFSFolderList${FOLDER_ID!}').treegrid('reload');">数据刷新</a>
+</div>
+<!-- 新建/编辑文件夹对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fsDialog${FOLDER_ID!}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">新建文件夹</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmFolder${FOLDER_ID!}" enctype="multipart/form-data">
+          <div class="fitem">
+            <label>文件夹名：</label>
+            <input class="easyui-validatebox" type="text" name="name" data-options="required:true,missingMessage:'文件夹名不能为空'" style="outline:none;border-radius: 5px;padding:0 4px;line-height: 22px; border: 1px solid #aaa">
+          </div>
+          <div class="fitem">
+            <label>父文件夹：</label>
+            <input name="pid" id="folder-combotree${FOLDER_ID!}">
+          </div>
+          <div class="fitem">
+            <label>文件格式：</label>
+            <input name="filetype" id="filetypelist${FOLDER_ID!}" class="easyui-combobox" data-options="valueField: 'cdval',textField: 'cddescp',multiple:true">
+          </div>
+          <div class="fitem">
+            <label>文件夹备注：</label>
+            <input class="easyui-textbox" data-options="multiline:true" value="" name="remark" style="width:200px;height:50px">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="fsDlgButtons${FOLDER_ID!}">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="folder-save${FOLDER_ID!}" onclick="rs.dev.fs${FOLDER_ID!}.save(this)">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 文件上传对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fsFileUploadDL${FOLDER_ID!}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">上传文件</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmFSFile${FOLDER_ID!}" method="post">
+          <div class="fitem">
+            <label>选择文件</label>
+            <input class="easyui-filebox" id="fileUpload${FOLDER_ID!}" name="addfile" accept="*" buttonText="选择文件" data-options="required:true,missingMessage:'请选择文件',onChange:function(newVal){var name = newVal.split('.')[0];
+                $('#fmFSFileName${FOLDER_ID!}').textbox('setValue',name);rs.dev.fs${FOLDER_ID!}.onFileChange(newVal)}">
+          </div>
+          <div class="fitem">
+            <label>自定义文件名</label>
+            <input id="fmFSFileName${FOLDER_ID!}" class="easyui-textbox" name="name" data-options="required:true">
+          </div>
+          <div class="fitem">
+            <label>重要性：</label>
+            <select class="easyui-combobox" name="category" style="width:200px;">
+              <option value="A">重要</option>
+              <option value="B">次要</option>
+              <option value="C">一般</option>
+            </select>
+          </div>
+          <div class="fitem">
+            <label>文件备注：</label>
+            <input class="easyui-textbox" data-options="multiline:true" value="" name="remark" style="width:200px;height:50px">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="fsDlgButtonsFile${FOLDER_ID!}">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="rs.dev.fs${FOLDER_ID!}.saveFile(this)">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 文件修改对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fsDlgFileEdit${FOLDER_ID!}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">文件修改</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fsFmFileEdit${FOLDER_ID!}" method="post">
+          <div class="fitem">
+          </div>
+          <div class="fitem">
+            <label>选择文件</label>
+            <input class="easyui-filebox" id="fileUpdate${FOLDER_ID!}" method="post" buttonText="选择文件" name="updatefile" accept="*" data-options="required:true,onChange:rs.dev.fs${FOLDER_ID!}.onFileChange">
+          </div>
+          <div class="fitem">
+            <label>重要性：</label>
+            <select id="category${FOLDER_ID!}" class="easyui-combobox" name="category" style="width:200px;">
+              <option value="A">重要</option>
+              <option value="B">次要</option>
+              <option value="C">一般</option>
+            </select>
+          </div>
+          <div class="fitem">
+            <label>文件备注：</label>
+            <input class="easyui-textbox" data-options="multiline:true" value="" name="remark" style="width:200px;height:50px">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="fsButtonsFileEdit${FOLDER_ID!}">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="saveFileEdit${FOLDER_ID!}" onclick="rs.dev.fs${FOLDER_ID!}.saveFileEdit(this)">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<!-- window -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fsWindowForm${FOLDER_ID!}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">菜单链接</h4>
+      </div>
+      <div class="modal-body">
+        <input id="fsInputFormAddress${FOLDER_ID!}" class="easyui-textbox form-control" data-options="readonly:true" style="width: 100%;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="fsBtnCopyFormAddress${FOLDER_ID!}">复制</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 修改文件存储类型对话框 -->
+<div class="modal fade" tab="-1" role="role" id="changeStorageType${FOLDER_ID!}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">文件存储类型</h4>
+      </div>
+      <div class="modal-body">
+        <select id="storageType" class="easyui-combobox" name="type" style="width:100%;">
+          <option value="local">local</option>
+          <option value="ftp">ftp</option>
+          <option value="hdfs">hdfs</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="rs.dev.fs${FOLDER_ID!}.changeStorageType(this)">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 文件下载记录对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fileDownloadLogDlg${FOLDER_ID!}">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">文件操作记录</h4>
+      </div>
+      <div class="modal-body" style="height: 300px;">
+        <table id="fileDownloadLogList${FOLDER_ID!}" class="easyui-datagrid" rownumbers="true" fitColumns="true" fit="true" striped="true">
+          <thead>
+            <tr>
+              <th data-options="field:'ck',checkbox:true"></th>
+              <th field="operatorName" halign="center" align="center" width="165">操作人</th>
+              <th field="operation" halign="center" align="center" width="170" data-options="formatter:function(value){
+                switch(value){
+                  case 'D':return '下载';break;
+                  case 'R':return '读取';break;
+                }
+             }">操作类型</th>
+              <th field="operatime" halign="center" align="center" width="170" data-options="formatter:function(value){
+              return new Date(value).toLocaleDateString().replace(/\//g, '-') + ' ' + new Date(value).toTimeString().substr(0, 8);
+             }">操作时间</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 文件所有版本对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fileAllVersionDlg${FOLDER_ID!}">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">查看文件所有版本</h4>
+      </div>
+      <div class="modal-body" style="height: 300px;">
+        <table id="fileAllVersionList${FOLDER_ID!}" class="easyui-datagrid" rownumbers="true" fitColumns="true" fit="true" striped="true">
+          <thead>
+            <tr>
+              <th data-options="field:'ck',checkbox:true"></th>
+              <th field="name" halign="center" align="center" width="165">文件名</th>
+              <th field="verno" halign="center" align="center" width="80">版本</th>
+              <th field="categoryid" halign="center" align="center" width="70" data-options="formatter:function(value){
+                switch(value){
+                    case 'A':return '重要';break;
+                    case 'B':return '次要';break;
+                    case 'C':return '一般';break;
+                    default:return '--';
+                  }
+              }">重要性</th>
+              <th field="cjr" halign="center" align="center" width="100">操作人</th>
+              <th field="cjsj" halign="center" align="center" width="200" data-options="formatter:rs.dev.fs${FOLDER_ID!}.formatDate">创建时间</th>
+              <th field="remark" halign="center" align="center" width="170">备注</th>
+              <th field="id" halign="center" align="center" width="170" data-options="formatter:function(value,data){
+                var authType = data.auth.toString(2);
+                if(authType.length < 3){
+                    for(var i = 0; i <= 3- authType.length;i++){
+                      authType.unshift('0');
+                    }
+                  }
+                  if(authType[1] == 1){
+                    return '[<a href=\'' + window.rsContextPath + '/fs/file/download/' + value + '\' download>下载</a>]';
+                  }else{
+                    return '--';
+                  }
+              }">操作</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+rs.dev.fs${FOLDER_ID!} = jQuery.extend({}, rs.dev.default, (function($, window) {
+  'use strict';
+
+  // Only visible in system management menu
+  //$('#fsBtnAddFolder${FOLDER_ID!}').toggle('${FOLDER_ID!}' === '');
+  $('#deleteFiles${FOLDER_ID!}').toggle('${FOLDER_ID!}' === '');
+  $('#fsBtnAddress${FOLDER_ID!}').toggle('${FOLDER_ID!}' === '');
+  $('#fsBtnStorage${FOLDER_ID!}').toggle('${FOLDER_ID!}' === '');
+
+  var fsUrl;
+  var fsMethod;
+  var fsVideMode;
+  var fileRow;
+  var MAX_FILE_SIZE = 1024 * 100; // 单位:M;
+  window.folderListCache = new Object;
+
+  //格式化文件操作权限控制
+  function formatOpt(value, data, index) {
+    var authType = data.auth.toString(2).split('');
+    if (authType.length < 3) {
+      for (var i = 0; i <= 3 - authType.length; i++) {
+        authType.unshift('0');
+      }
+    }
+    var str = '';
+    if (data.type === 'B') {
+      if (authType[0] === '1') {
+        str += '[<a href="javascript:void(0)" onclick="rs.dev.fs${FOLDER_ID!}.editFile(' + index + ')">修改</a>][<a href="javascript:void(0)" onclick="rs.dev.fs${FOLDER_ID!}.deleteFile(' + index + ')">删除</a>]';
+      };
+      if (authType[1] === '1') {
+        str += '[<a href="' + window.rsContextPath + '/fs/file/download/' + data.id + '" download>下载</a>]';
+      }
+    }
+    return str;
+  }
+
+  //格式化treegrid需要的数据结构，并创建一个一个tree
+  /*function formateComboTree(targetId,objId) {
+    var url = objId?'/fs/folder/listfolder/'+objId:'/fs/folder/list';
+    console.log(window.cache);
+    return rs.http.get({
+      url: url,
+      success: function(result) {
+        var treeData = rs.util.transFormTreeData('id', 'pid', result.rows);
+        rs.util.formateTreeDataSuitTree(treeData);
+        rs.util.sortTreeDataArray(treeData);
+        setFolderClosed(treeData);
+        if(!'${FOLDER_ID!}' && fsVideMode !== rs.constant.VIEWMODE_ADD){
+          treeData.unshift({
+            id:objId,
+            name:'../',
+            res:'',
+            pid:"",
+            text:'../',
+            iconCls:'rsutiltree glyphicon glyphicon-folder-open'
+          });
+        }
+        $('#' + targetId).combotree({
+          data: treeData,
+          editable:false
+        });
+      }
+    })
+  }*/
+  function formateComboTree(targetId) {
+    var temp = JSON.parse(JSON.stringify(window.folderListCache));
+    var treeData = rs.util.transFormTreeData('id', 'pid', temp.rows);
+        rs.util.formateTreeDataSuitTree(treeData);
+        rs.util.sortTreeDataArray(treeData);
+        setFolderClosed(treeData);
+        if(!'${FOLDER_ID!}' && fsVideMode !== rs.constant.VIEWMODE_ADD){
+          treeData.unshift({
+            id:'',
+            name:'../',
+            res:'',
+            pid:"",
+            text:'../',
+            iconCls:'rsutiltree glyphicon glyphicon-folder-open'
+          });
+        }
+        $('#' + targetId).combotree({
+          data: treeData,
+          editable:false
+        });
+  }
+
+  function setFolderClosed(data){
+    $.each(data,function(index,item){
+      item.iconCls = 'rsutiltree glyphicon glyphicon-folder-open';
+      if(item.children && item.children.length > 0){
+        item.state = 'closed';
+        setFolderClosed(item.children);
+      }
+    })
+  }
+
+
+  // 格式化时间格式，将时间戳转化为时间格式yyyy-MM-dd hh:mm:ss
+  function formatDate(value) {
+    return new Date(value).toLocaleDateString().replace(/\//g, "-") + " " + new Date(value).toTimeString().substr(0, 8);
+  }
+
+  //点击左侧文件夹，在右侧列出该文件夹下的所有文件
+  function getFilesInFolder(row) {
+    var authType = row.auth.toString(2).split('');
+    if (authType.length < 3) {
+      for (var i = 0; i <= 3 - authType.length; i++) {
+        authType.unshift('0');
+      }
+    }
+    rs.http.get({
+      url: '/fs/file/' + row.id
+    }).done(function(res) {
+      var data = [];
+      if (res && res.total !== 0) {
+        $.each(res.rows, function(index, item) {
+          if (item.type !== 'A') {
+            data.push(item);
+          }
+        })
+      }
+      /*$('#dgFSFileList${FOLDER_ID!}').datagrid('loadData',data);*/
+      $('#dgFSFileList${FOLDER_ID!}').datagrid({
+        data: data,
+        columns: [
+          [{
+            field: 'ck',
+            checkbox: true
+          }, {
+            title: '文件名',
+            field: 'name',
+            width: 150,
+            halign: 'center',
+          }, {
+            title: '重要性',
+            field: 'categoryid',
+            width: 120,
+            halign: 'center',
+            align: 'center',
+            formatter: function(value, data) {
+              switch (value) {
+                case 'A':
+                  {
+                    return '重要';
+                  };
+                  break;
+                case 'B':
+                  {
+                    return '次要';
+                  }
+                  break;
+                case 'C':
+                  {
+                    return '一般';
+                  };
+                  break;
+                default:
+                  {
+                    return '--';
+                  }
+              }
+            }
+          }, {
+            title: '上传人',
+            field: 'cjr',
+            width: 80,
+            halign: 'center',
+            align: 'center'
+          }, {
+            title: '上传时间',
+            field: 'cjsj',
+            width: 150,
+            halign: 'center',
+            align: 'center',
+            formatter: function(value) {
+              return new Date(value).toLocaleDateString().replace(/\//g, "-") + " " + new Date(value).toTimeString().substr(0, 8);
+            }
+          }, {
+            title: '备注',
+            field: 'remark',
+            width: 150,
+            halign: 'center',
+            align: 'center'
+          }, {
+            title: '版本',
+            field: 'verno',
+            width: 80,
+            halign: 'center',
+            align: 'center',
+            formatter: function(value, row, index) {
+              if (value == null) {
+                return '--';
+              } else {
+                return value;
+              }
+            }
+          }, {
+            title: '操作',
+            field: 'opt',
+            halign: 'center',
+            formatter: formatOpt
+          }]
+        ],
+        striped: true,
+        fitColumns: true,
+        fit: true
+      })
+      if (authType[0] == 1) {
+        $('#dgFSFileList${FOLDER_ID!}').datagrid({
+          toolbar: [{
+            iconCls: 'icon-add',
+            text: '文件上传',
+            handler: function() {
+              uploadFile();
+            }
+          }, {
+            iconCls: 'icon-remove',
+            text: '批量删除',
+            handler: function() {
+              deleteFiles();
+            }
+          }, {
+            text: '查看操作日志',
+            handler: function() {
+              fetchFileOptLog();
+            }
+          }, {
+            text: '查看文件所有版本',
+            handler: function() {
+              fetchFileAllVersion();
+            }
+          }]
+        })
+      } else {
+        $('#dgFSFileList${FOLDER_ID!}').datagrid({
+          toolbar: [{
+            text: '查看操作日志',
+            handler: function() {
+              fetchFileOptLog();
+            }
+          }, {
+            text: '查看文件所有版本',
+            handler: function() {
+              fetchFileAllVersion();
+            }
+          }]
+        })
+      }
+    })
+  }
+
+  //创建文件类型下拉框
+  function fsCreateFileExtList() {
+    return rs.http.postJson({
+      url: '/admin/datadict/list',
+      data: {
+        "name": "扩展名",
+        "cdtype": ""
+      },
+      success: function(res) {
+        if (res && res.total > 0) {
+          rs.http.get({
+            url: '/admin/datadict/' + res.rows[0].id + '/cdval'
+          }).done(function(res) {
+            var data = res.rows;
+            $('#filetypelist${FOLDER_ID!}').combobox('loadData',data);
+          })
+        }
+      }
+    })
+  }
+  //新増文件夹
+  function addFolder() {
+    fsUrl = '/fs/folder';
+    fsMethod = 'POST';
+    fsVideMode = rs.constant.VIEWMODE_ADD;
+    $('#fsDialog${FOLDER_ID!} form').form('reset');
+    $('#fsDialog${FOLDER_ID!}').find('.modal-title').html('新增文件夹');
+    var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+    var folderId = (row && row.id) || '${FOLDER_ID!}';
+    formateComboTree('folder-combotree${FOLDER_ID!}');
+    var d1 = fsCreateFileExtList();
+    $.when(d1).done(function() {
+      $('#folder-combotree${FOLDER_ID!}').combotree('setValue', folderId);
+      $('#fsDialog${FOLDER_ID!}').modal('show');
+    });
+    
+  };
+
+  //编辑文件夹
+  function editFolder() {
+    setTimeout(function(){
+      var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+      var rows = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelections');
+      if (row === null) {
+        rs.util.messageError(rs.constant.MESSAGE_EDIT);
+        return;
+      }
+      fsUrl = '/fs/folder/' + row.id;
+      fsMethod = 'PUT';
+      fsVideMode = rs.constant.VIEWMODE_EDIT;
+      formateComboTree('folder-combotree${FOLDER_ID!}');
+      var d1 = fsCreateFileExtList();
+      $.when(d1).done(function() {
+        var temp = {};
+        temp.id = row.id || '';
+        temp.name = row.name;
+        temp.pid = row.pid || '';
+        temp.filetype = row.filetype || '';
+        $('#fsDialog${FOLDER_ID!}').find('.modal-title').html('修改文件夹【' + row.name + '】');
+        $('#fsDialog${FOLDER_ID!}').modal('show');
+        $('#fmFolder${FOLDER_ID!}').form('load', temp);
+        $('#folder-combotree${FOLDER_ID!}').combotree('setValue', row.pid);
+        $('#filetypelist${FOLDER_ID!}').combobox('setValues',temp.filetype.split(','));
+        
+      });
+    },50)
+  }
+
+  //保存文件夹
+  function saveFolder(button) {
+    var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+    if ($('#fmFolder${FOLDER_ID!}').form('validate')) {
+      /*$(button).linkbutton('disable');*/
+      var formData = rs.util.formGetData('fmFolder${FOLDER_ID!}');
+      var msg;
+      if (fsVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功'
+      } else if (fsVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+        if(formData.pid === row.id){
+          rs.util.messageError('父文件夹不能与当前文件夹相同');
+          return false;
+        }
+      }
+      rs.http.ajaxJson({
+        url: fsUrl,
+        method: fsMethod,
+        data: formData,
+        success: function(result) {
+          $('#fsDialog${FOLDER_ID!}').modal('hide');
+          $('#dgFSFolderList${FOLDER_ID!}').treegrid('reload');
+          rs.util.messageInfo(msg);
+        }
+      }).always(function() {
+        /*$(button).linkbutton('enable');*/
+      });
+    }
+  }
+
+  //删除文件夹
+  function deleteFolder() {
+    setTimeout(function() {
+      var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+      if (row === null) {
+        rs.util.messageError(rs.constant.MESSAGE_DELETE);
+        return;
+      } else {
+        var folderId = [row.id];
+        rs.util.messageConfirm('删除文件夹会同时删除文件夹内的文件和文件夹，确认删除？', '提醒', function() {
+          rs.http.ajaxJson({
+            url: '/fs/folder',
+            method: 'DELETE',
+            data: {
+              ids: folderId
+            }
+          }).done(function() {
+            rs.util.messageInfo('删除成功');
+            $('#dgFSFolderList${FOLDER_ID!}').treegrid('reload');
+            $('#dgFSFolderList${FOLDER_ID!}').treegrid('unselectAll');
+            $('#dgAuth').treegrid('reload');
+          }).fail(function() {
+            rs.util.messageError('删除失败，请刷新后重试');
+          })
+        })
+      }
+    }, 10)
+
+  }
+
+  //批量删除文件
+  function deleteFiles() {
+    var rows = $('#dgFSFileList${FOLDER_ID!}').datagrid('getSelections');
+    if (rows.length === 0) {
+      rs.util.messageError(rs.constant.MESSAGE_DELETE);
+    } else {
+      var fileIds = [];
+      $.each(rows, function(index, item) {
+        fileIds.push(item.id);
+      });
+      rs.util.messageConfirm('确认删除', '提醒', function() {
+        var d2 = rs.http.ajaxJson({
+          url: '/fs/file',
+          method: 'DELETE',
+          data: {
+            ids: fileIds
+          }
+        });
+        $.when(d2).done(function() {
+          var rowTemp = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+          getFilesInFolder(rowTemp);
+          rs.util.messageInfo('删除成功');
+          $('#dgAuth').treegrid('reload');
+        }).fail(function() {
+          rs.util.messageError('删除失败，请刷新后重试');
+        });
+      });
+    }
+  }
+
+  //单个删除文件
+  function deleteFile(index) {
+    $('#dgFSFileList${FOLDER_ID!}').datagrid('unselectAll');
+    $('#dgFSFileList${FOLDER_ID!}').datagrid('selectRow', index);
+    var row = $('#dgFSFileList${FOLDER_ID!}').datagrid('getSelected');
+    if (row === null) {
+      rs.util.messageError(rs.constant.MESSAGE_DELETE);
+    } else {
+      var fileId = [row.id];
+      rs.util.messageConfirm('确认删除', '提醒', function() {
+        var d2 = rs.http.ajaxJson({
+          url: '/fs/file',
+          method: 'DELETE',
+          data: {
+            ids: fileId
+          }
+        });
+        $.when(d2).done(function() {
+          var rowTemp = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+          getFilesInFolder(rowTemp);
+          rs.util.messageInfo('删除成功');
+          $('#dgAuth').treegrid('reload');
+        }).fail(function() {
+          rs.util.messageError('删除失败，请刷新后重试');
+        });
+      });
+    }
+  }
+
+  // 打开文件上传对话框
+  function uploadFile() {
+    var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+    if (!row) {
+      rs.util.messageError('请先选择远程文件夹');
+    }
+
+    $('#fmFSFile${FOLDER_ID!}').form('reset');
+    /*$('#fsFileUploadDL${FOLDER_ID!}').dialog('open').dialog('setTitle', '上传文件');*/
+    $('#fsFileUploadDL${FOLDER_ID!}').modal('show')
+    fsUrl = window.rsContextPath + '/fs/file/addFile';
+    fsMethod = 'POST';
+    fsVideMode = '文件上传成功';
+  }
+
+  //判断上传的文件大小是否超出限制
+  function fileSizeIsOverMax(target) {
+    var fileSize = 0;
+    var isIE = /msid/i.test(navigator.userAgent) && !window.opera;
+    if (isIE && !target.files) {
+      var filePath = target.value;
+      var fileSystem = new ActiveXObject("Scripting.FileSystemObject");
+      var file = fileSystem.GetFile(filePath);
+      fileSize = file.size;
+    } else {
+      fileSize = target.files[0].size / 1024;
+    }
+    if (fileSize > MAX_FILE_SIZE) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  //选择文件完成
+  function onFileChange(newVal) {
+    var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+    if (!row) {
+      rs.util.messageError('请先选择远程文件夹');
+      return;
+    }
+    if(!checkFileExtension(row,newVal)){
+      rs.util.messageError('该文件格式不支持');
+      $('.sweet-alert').css('zIndex', 10000);
+      return;
+    }
+  }
+
+  function checkFileExtension(row,filename){
+    var tempArray = filename.split('.');
+    var ext = tempArray[tempArray.length - 1];
+    if (row.filetype !== null && row.filetype !== '' && row.filetype.indexOf(ext) === -1) {
+      return false;
+    }
+    return true;
+  }
+
+
+  //文件上传确认
+  function saveFile(button) {
+    var uploadTarget = $('#fmFSFile${FOLDER_ID!}').find('[name="addfile"]')[0];
+    if (fileSizeIsOverMax(uploadTarget)) {
+      rs.util.messageError('文件大小不能超过' + MAX_FILE_SIZE / 1024 + 'M');
+      return;
+    }
+    if ($("#fmFSFile${FOLDER_ID!}").form('validate')) {
+      var formData = new FormData($("#fmFSFile${FOLDER_ID!}")[0]);
+      var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+      formData.append('folderid', row.id);
+      formData.append('path', '');
+      var filename = formData.get('addfile').name;
+      if(!checkFileExtension(row,filename)){
+        rs.util.messageError('该文件格式不支持');
+        $('.sweet-alert').css('zIndex', 10000);
+        return;
+      }
+      $.ajax({
+        url: fsUrl,
+        method: fsMethod,
+        data: formData,
+        processData: false,
+        contentType: false,
+        cache: false,
+        success: function(res) {
+          var rowTemp = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+          getFilesInFolder(rowTemp);
+          rs.util.messageInfo(fsVideMode);
+          $('#fsFileUploadDL${FOLDER_ID!}').modal('hide');
+          $('#dgAuth').treegrid('reload');
+        },
+        error: function(res) {
+          if(res.responseJSON.verrors && res.responseJSON.verrors.length > 0){
+            var errorMsg = '';
+            $.each(res.responseJSON.verrors, function(index, verror) {
+              errorMsg +=  verror.errorMsg + '\n';
+            })
+            rs.util.messageError(errorMsg);
+          }
+        }
+      });
+    } else {
+      rs.util.messageError('请选择需要上传的文件');
+    }
+
+  }
+  //文件修改
+  function editFile(index) {
+    $('#dgFSFileList${FOLDER_ID!}').datagrid('unselectAll');
+    $('#dgFSFileList${FOLDER_ID!}').datagrid('selectRow', index);
+    fileRow = $('#dgFSFileList${FOLDER_ID!}').datagrid('getSelected');
+    formateComboTree('file-combotree');
+    $('#fsFmFileEdit${FOLDER_ID!}').form('reset');
+    if (fileRow === null) {
+        rs.util.messageError(rs.constant.MESSAGE_EDIT);
+      } else {
+        $('#fsFmFileEdit${FOLDER_ID!}').form('load', fileRow);
+        $('#category${FOLDER_ID!}').combobox('setValue', fileRow.categoryid);
+        $('#fsDlgFileEdit${FOLDER_ID!}').find('modal-title').html('文件修改【' + fileRow.name + '】');
+        $('#fsDlgFileEdit${FOLDER_ID!}').modal('show');
+        fsUrl = '/fs/file/updateFile';
+        fsMethod = 'POST';
+      }
+  }
+
+
+  //文件修改保存
+  function saveFileEdit(button) {
+    var updateTarget = $('#fsFmFileEdit${FOLDER_ID!}').find('[name="updatefile"]')[0];
+    if (fileSizeIsOverMax(updateTarget)) {
+      rs.util.messageError('文件大小不能超过' + MAX_FILE_SIZE / 1024 + 'M');
+      return;
+    }
+    var formData = new FormData($("#fsFmFileEdit${FOLDER_ID!}")[0]);
+    formData.append('folderid', fileRow.folderid);
+    formData.append('fileid', fileRow.id);
+    formData.append('path', '');
+
+    if ($('#fsFmFileEdit${FOLDER_ID!}').form('validate')) {
+      var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+      var filename = formData.get('updatefile').name;
+      if(!checkFileExtension(row,filename)){
+        rs.util.messageError('选择的文件格式不被支持');
+        $('.sweet-alert').css('zIndex', 10000);
+        return;
+      }
+      $.ajax({
+        url: window.rsContextPath + fsUrl,
+        method: fsMethod,
+        data: formData,
+        processData: false,
+        contentType: false,
+        cache: false,
+        success: function(res) {
+          var rowTemp = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+          getFilesInFolder(rowTemp);
+          rs.util.messageInfo('文件修改成功');
+          $('#fsDlgFileEdit${FOLDER_ID!}').modal('hide');
+          $('#dgAuth').treegrid('reload');
+        },
+        error: function(xhr) {
+          if (xhr.status === 302) {
+            rs.util.messageError('文件修改失败，请刷新重试');
+          }
+        }
+      })
+    } else {
+      rs.util.messageError('请选择需要上传的文件');
+    }
+  }
+
+  // 弹框获取菜单配置地址
+  function popMenuAddressWindow() {
+    var row = $('#dgFSFolderList${FOLDER_ID!}').treegrid('getSelected');
+    if (row) {
+      $('#fsWindowForm${FOLDER_ID!}').find('.modal-title').html('菜单链接【' + row.name + '】');
+      var dataContent = '/fs/folder/page/' + row.id;
+      $('#fsInputFormAddress${FOLDER_ID!}').textbox('setText', dataContent);
+      $('#fsWindowForm${FOLDER_ID!}').modal('show');
+      $('#fsWindowForm${FOLDER_ID!}').on('shown.bs.modal', function(e) {
+          $('#fsInputFormAddress${FOLDER_ID!}').textbox('resize');
+        })
+        // 复制
+      var clipboard = new Clipboard('#fsBtnCopyFormAddress${FOLDER_ID!}', {
+        text: function() {
+          return dataContent;
+        }
+      });
+      clipboard.on('success', function(e) {
+        rs.util.messageInfo('复制成功');
+        $('#fsWindowForm${FOLDER_ID!}').modal('hide');
+      });
+      clipboard.on('error', function(e) {
+        rs.util.messageError('复制失败，请手工复制');
+      });
+    } else {
+      rs.util.messageError("请选择文件夹");
+    }
+  }
+
+  //打开文件存储方式修改对话框
+  function openChangeStorageTypeDL() {
+    $('#changeStorageType${FOLDER_ID!}').modal('show');
+    $('#changeStorageType${FOLDER_ID!}').on('shown.bs.modal', function(e) {
+      $('#storageType').combobox('resize');
+    })
+  }
+
+
+  //修改文件存储方式
+  function changeStorageType(button) {
+    // $(button).linkbutton('disable');
+    var formData = rs.util.formGetData('fmChangeStorage${FOLDER_ID!}');
+    rs.http.ajaxJson({
+      url: '/fs/storage',
+      method: 'POST',
+      data: formData,
+      success: function() {
+        rs.util.messageInfo('文件存储类型修改成功');
+        $('#changeStorageType${FOLDER_ID!}').modal('hide');
+      }
+    }).always(function() {
+      // $(button).linkbutton('enable');
+    });
+  }
+
+
+  //文件操作记录
+  function fetchFileOptLog() {
+    var row = $('#dgFSFileList${FOLDER_ID!}').datagrid('getSelected');
+    if (row == null) {
+      rs.util.messageWarning(rs.constant.MESSAGE_VIEW);
+    } else {
+      rs.http.get({
+        url: '/fs/log/' + row.id,
+      }).done(function(res) {
+        if (res) {
+          var data = res.rows;
+          $('#fileDownloadLogList${FOLDER_ID!}').datagrid('loadData', data)
+          $('#fileDownloadLogDlg${FOLDER_ID!}').find('.modal-titel').html('文件操作记录[' + row.name + ']');
+          $('#fileDownloadLogDlg${FOLDER_ID!}').modal('show');
+          setTimeout(function() {
+            $('#fileDownloadLogList${FOLDER_ID!}', rs.util.getSelectedTab()).datagrid('resize');
+          }, 200);
+        }
+      })
+    }
+  }
+
+  //查看文件所有版本
+  function fetchFileAllVersion() {
+    var row = $('#dgFSFileList${FOLDER_ID!}').datagrid('getSelected');
+    if (row == null) {
+      rs.util.messageError(rs.constant.MESSAGE_VIEW);
+    } else {
+
+      rs.http.get({
+        url: '/fs/file/list/' + row.id,
+      }).done(function(res) {
+        if (res) {
+          var data = res.rows;
+          $('#fileAllVersionList${FOLDER_ID!}').datagrid('loadData', data);
+          $('#fileAllVersionDlg${FOLDER_ID!}').find('.modal-title').html('文件所有版本【' + row.name + '】');
+          $('#fileAllVersionDlg${FOLDER_ID!}').modal('show');
+          setTimeout(function() {
+            $('#fileAllVersionList${FOLDER_ID!}', rs.util.getSelectedTab()).datagrid('resize');
+          }, 200);
+        }
+      })
+    }
+  }
+
+  return {
+    save: saveFolder,
+    add: addFolder,
+    edit: editFolder,
+    deleteFiles: deleteFiles,
+    deleteFile: deleteFile,
+    uploadFile: uploadFile,
+    saveFile: saveFile,
+    editFile: editFile,
+    saveFileEdit: saveFileEdit,
+    popMenuAddressWindow: popMenuAddressWindow,
+    openChangeStorageTypeDL: openChangeStorageTypeDL,
+    changeStorageType: changeStorageType,
+    formatOpt: formatOpt,
+    getFilesInFolder: getFilesInFolder,
+    deleteFolder: deleteFolder,
+    fetchFileOptLog: fetchFileOptLog,
+    fetchFileAllVersion: fetchFileAllVersion,
+    onFileChange: onFileChange,
+    formatDate: formatDate
+  }
+
+})(jQuery, window));
+</script>

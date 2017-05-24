@@ -1,0 +1,312 @@
+<#assign base=request.contextPath />
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base id="base" href="${base}">
+  <title>管理面板</title>
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/bootstrap/css/bootstrap.min.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/jquery-easyui/themes/bootstrap/easyui.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/jquery-easyui/themes/icon.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/layim/css/layui.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/AdminLTE/css/AdminLTE.min.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/skins/skin-rs.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/bootstrap-sweetalert/sweetalert.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/Font Awesome/css/font-awesome.min.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-common.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-formlist.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-autolist.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-manage.css')}">
+  <script>
+  window.rsContextPath = '${base}';
+  </script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/jquery.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/jquery.easyui.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/extension/datagrid-dnd.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/moment.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/clipboard.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/bootstrap/js/bootstrap.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/sockJs/sockJs.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/layer/layer.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/vue.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-util.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-easyui.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-im.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-adminLTE.js')}"></script>
+  <!-- layim -->
+  <script src="${base}${urls.getForLookupPath('/lib/layim/layui.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/AdminLTE/js/app.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/bootstrap-sweetalert/sweetalert.js')}"></script>
+  <script>
+  rs.util.navTreeGetTreeView('mainFormTree');
+
+  $(function() {
+    var username = localStorage.getItem('username');
+    username && $('#spanAdmin').text('欢迎你，' + username + '！');
+
+    var heighth = $('.content-wrapper').css('min-height');
+    $('#contentTabs').css('height', heighth);
+
+    // $(document).on('click', "[data-toggle='offcanvas']", function (e) {
+    //   setTimeout(function(){
+    //     $('#contentTabs').tabs('resize');
+    //   },300);
+    // })
+
+    $('#' + rs.global.adminTabsId).tabs({
+      onClose: function(title) {
+        if (window.tabDialogMapAdmin && window.tabDialogMapAdmin[title]) {
+          var dialogId = window.tabDialogMapAdmin[title];
+          if (typeof dialogId === 'string') {
+            $('#' + dialogId).dialog('destroy');
+          } else if ($.isArray(dialogId)) {
+            $.each(dialogId, function(index, dlgId) {
+              $('#' + dlgId).dialog('destroy');
+            });
+          }
+        }
+      },
+      onSelect: function(title, index) {
+        var configId = rs.global.tabIndexConfigIdAdmin[index];
+        if (configId) {
+          rs.global.currentConfigId = configId;
+          rs.util.fetchAndExecuteJs(configId, 'form');
+          rs.util.fetchAndExecuteJs(configId, 'list');
+        }
+      }
+    });
+
+    $(document).keyup(function(e) {
+      // escape key press handler
+      if (e.which === 27) {
+        $('.rs-dialog').dialog('destroy'); // for autolist
+        $('.easyui-dialog:visible').dialog('close'); // for others
+      }
+    });
+  });
+  </script>
+</head>
+
+<body class="hold-transition skin-rs sidebar-mini">
+  <div class="wrapper">
+    <header class="main-header">
+      <a href="#" class="logo">
+        <span class="logo-mini"><i class="fa fa-ship"></i></span>
+        <span class="logo-lg"><b>综合保障管理系统</b></span>
+      </a>
+      <nav class="navbar navbar-static-top">
+        <!--         <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+          <span class="sr-only">Toggle navigation</span>
+        </a> -->
+        <div class="navbar-custom-menu">
+          <ul class="nav navbar-nav">
+            <li class="dropdown user user-menu">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <!-- <img src="dist/img/user2-160x160.jpg" class="user-image" alt="User Image"> -->
+                <span class="hidden-xs" id="spanAdmin">name</span>
+              </a>
+              <ul class="dropdown-menu">
+                <!-- User image -->
+                <li class="user-header">
+                  <img src="images/login/llogo.png" class="img-circle" alt="头像" style="margin-top:30px">
+                </li>
+                <li class="user-footer">
+                  <div class="pull-left">
+                    <a href="#" class="btn btn-default btn-flat">修改密码</a>
+                  </div>
+                  <div class="pull-right">
+                    <a class="btn btn-default btn-flat" onclick="onLogoutInAdminPage()">退出系统</a>
+                  </div>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+    <aside class="main-sidebar">
+      <section class="sidebar">
+        <ul class="sidebar-menu" id="mainFormTree">
+        </ul>
+      </section>
+    </aside>
+    <!-- <div class="content-wrapper"> -->
+    <section class="content-wrapper">
+      <div id="contentTabs" class="easyui-tabs" data-options="fit:true,border:false,plain:true">
+        <div title="首页" class="rs-home-main">
+          <div class="row" style="padding: 0 10px;">
+            <div class="col-md-6">
+              <div class="box box-info" style="margin: 20px 0 0;">
+                <div class="box-header cp">
+                  <h3 class="box-title tabItem" data-url="/fs/folder/page/b062f86faf5a4ccabab20070b117507c?menuId=40000102" data-title="党务">党务</h3>
+                  <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                  </div>
+                </div>
+                <div class="box-body" style="height: 200px;">
+                  <table class="easyui-treegrid" url="${base}/fs/folder/list/b062f86faf5a4ccabab20070b117507c" fitColumns="true" fit="true" striped="true" method="GET" data-options="loadMsg:'加载中...',idField:'id', treeField:'name',loadFilter:loadFilter">
+                    <thead>
+                      <tr>
+                        <th field="name" width="250" halign="center">目录</th>
+                        <th field="categoryid" width="80" halign="center" align="center" data-options="formatter:function(value){
+                          switch(value){
+                            case 'A':{
+                              return '重要';
+                            };break;
+                            case 'B':{
+                              return '次要';
+                            };break;
+                            case 'C':{
+                              return '一般'
+                            };break;
+                            default:{
+                            return '--';
+                            }
+                          }
+                        }">重要性</th>
+                        <th field="cjr" width="120" halign="center" align="center" data-options="formatter:function(value){
+                          if(!value){return '--'}else{
+                          return value
+                          }
+                        }">操作者</th>
+                        <th field="cjsj" width="180" halign="center" align="center" data-options="formatter:function(value){
+                          if(value){
+                            return new Date(value).toLocaleDateString().replace(/\//g, '-') + ' ' + new Date(value).toTimeString().substr(0, 8);
+                          }else{
+                            return '--';
+                          }
+                        }">操作时间</th>
+                        <th field="verno" width="80" halign="center" align="center">版本</th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="box box-info" style="margin: 20px 0 0;">
+                <div class="box-header cp">
+                  <h3 class="box-title tabItem" data-url="/fs/folder/page/4f2f7a9401ee45f39caa3e7be6553036?menuId=4000203" data-title="科干">科干</h3>
+                  <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                  </div>
+                </div>
+                <div class="box-body" style="height: 200px;">
+                  <table class="easyui-treegrid" url="${base}/fs/folder/list/4f2f7a9401ee45f39caa3e7be6553036" fitColumns="true" fit="true" striped="true" method="GET" data-options="loadMsg:'加载中...',idField:'id', treeField:'name',loadFilter:loadFilter">
+                    <thead>
+                      <tr>
+                        <th field="name" width="250" halign="center">目录</th>
+                        <th field="categoryid" width="80" halign="center" align="center" data-options="formatter:function(value){
+                          switch(value){
+                            case 'A':{
+                              return '重要';
+                            };break;
+                            case 'B':{
+                              return '次要';
+                            };break;
+                            case 'C':{
+                              return '一般'
+                            };break;
+                            default:{
+                            return '--';
+                            }
+                          }
+                        }">重要性</th>
+                        <th field="cjr" width="120" halign="center" align="center" data-options="formatter:function(value){
+                          if(!value){return '--'}else{
+                          return value
+                          }
+                        }">操作者</th>
+                        <th field="cjsj" width="180" halign="center" align="center" data-options="formatter:function(value){
+                          if(value){
+                            return new Date(value).toLocaleDateString().replace(/\//g, '-') + ' ' + new Date(value).toTimeString().substr(0, 8);
+                          }else{
+                            return '--';
+                          }
+                        }">操作时间</th>
+                        <th field="verno" width="80" halign="center" align="center">版本</th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row" style="padding: 0 25px;">
+            <div class="clo-md-12">
+              <div class="box-primary box" style="margin: 20px 0 0;">
+                <div class="box-header cp">
+                  <h3 class="box-title tabItem" data-url="/admin/moduleTest/page/autolist/09ca535fbc974ffea0206adc5e457f5f?menuId=301000001" data-title="舰舷配置">舰舷配置</h3>
+                  <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                  </div>
+                </div>
+                <div class="box-body" style="height: 320px;">
+                  <table id="jxSetting"></table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- </div> -->
+  </div>
+  <!-- im -->
+  <div id="rs-im-control" class="rsimlogin"></div>
+  <div id="rs-im"></div>
+  <!-- JavaScript -->
+  <script>
+  function onLogoutInAdminPage() {
+    rs.util.messageConfirm('确认退出系统？', '提醒', function() {
+      location.href = '${base}/logout';
+    })
+    return false;
+  }
+
+  function loadFilter(data) {
+    if (data && data.total > 0) {
+      var url = $(this).attr('url').split('/');
+      var parentId = url[url.length - 1];
+      $.each(data.rows, function(index, row) {
+        if (row && row.type === 'A') {
+          row.iconCls = 'rsutiltree glyphicon glyphicon-folder-open folder';
+        }
+        if (row && row.folderid != parentId) {
+          row._parentId = row.folderid;
+        }
+      });
+    }
+    return data;
+  }
+
+  // for test im
+  (function($) {
+    try {
+      var debug = true;
+      if (!debug) return;
+      $('#rs-im-control').on('click', function() {
+        var _this = $(this);
+        var username = localStorage.getItem('username');
+        window.localStorage.setItem('layimState', 2);
+        var d1 = rs.im.login(username, '123456').done(function(result) {
+          _this.hide();
+          $('#rs-im').append(result);
+        });
+      });
+    } catch (e) {
+      console.error('::im error::', e);
+    }
+  })(jQuery);
+  </script>
+</body>
+
+</html>

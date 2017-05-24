@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.rs.devplatform.persistent.mapper.SysRoles2UserMapper">
+
+	<select id="getUsers4Role" resultType="com.rs.framework.common.entity.persistent.SysUsers">
+		select u.USERS_ID as id, u.USERS_NAME as name, u.USERS_EMAIL as email
+		from sys_users u, sys_u2r r
+		where u.users_id=U2R_USERID and r.U2R_ROLEID=#{roleId}
+	</select>
+	
+</mapper>

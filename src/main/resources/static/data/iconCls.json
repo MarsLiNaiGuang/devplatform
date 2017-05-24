@@ -1,0 +1,117 @@
+[
+  {
+    "icon": "icon-blank",
+    "name": "icon-blank",
+    "iconCls": "icon-blank"
+  },
+  {
+    "icon": "icon-add",
+    "name": "icon-add",
+    "iconCls": "icon-add"
+  },
+  {
+    "icon": "icon-edit",
+    "name": "icon-edit",
+    "iconCls": "icon-edit"
+  },
+  {
+    "icon": "icon-clear",
+    "name": "icon-clear",
+    "iconCls": "icon-clear"
+  },
+  {
+    "icon": "icon-remove",
+    "name": "icon-remove",
+    "iconCls": "icon-remove"
+  },
+  {
+    "icon": "icon-save",
+    "name": "icon-save",
+    "iconCls": "icon-save"
+  },
+  {
+    "icon": "icon-cut",
+    "name": "icon-cut",
+    "iconCls": "icon-cut"
+  },
+  {
+    "icon": "icon-ok",
+    "name": "icon-ok",
+    "iconCls": "icon-ok"
+  },
+  {
+    "icon": "icon-no",
+    "name": "icon-no",
+    "iconCls": "icon-no"
+  },
+  {
+    "icon": "icon-cancel",
+    "name": "icon-cancel",
+    "iconCls": "icon-cancel"
+  },
+  {
+    "icon": "icon-reload",
+    "name": "icon-reload",
+    "iconCls": "icon-reload"
+  },
+  {
+    "icon": "icon-search",
+    "name": "icon-search",
+    "iconCls": "icon-search"
+  },
+  {
+    "icon": "icon-print",
+    "name": "icon-print",
+    "iconCls": "icon-print"
+  },
+  {
+    "icon": "icon-help",
+    "name": "icon-help",
+    "iconCls": "icon-help"
+  },
+  {
+    "icon": "icon-undo",
+    "name": "icon-undo",
+    "iconCls": "icon-undo"
+  },
+  {
+    "icon": "icon-redo",
+    "name": "icon-redo",
+    "iconCls": "icon-redo"
+  },
+  {
+    "icon": "icon-back",
+    "name": "icon-back",
+    "iconCls": "icon-back"
+  },
+  {
+    "icon": "icon-sum",
+    "name": "icon-sum",
+    "iconCls": "icon-sum"
+  },
+  {
+    "icon": "icon-tip",
+    "name": "icon-tip",
+    "iconCls": "icon-tip"
+  },
+  {
+    "icon": "icon-filter",
+    "name": "icon-filter",
+    "iconCls": "icon-filter"
+  },
+  {
+    "icon": "icon-man",
+    "name": "icon-man",
+    "iconCls": "icon-man"
+  },
+  {
+    "icon": "icon-lock",
+    "name": "icon-lock",
+    "iconCls": "icon-lock"
+  },
+  {
+    "icon": "icon-more",
+    "name": "icon-more",
+    "iconCls": "icon-more"
+  }
+]

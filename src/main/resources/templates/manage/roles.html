@@ -1,0 +1,682 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<table id="dgRole" class="easyui-datagrid" url="${base}/admin/role/list" method="POST" toolbar="#RolesToolbar" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" data-options="onBeforeLoad: 
+function (param) {
+    var searchParam = rs.util.getSearchParam('searchFormRole'); 
+    $.extend(param, searchParam);
+        }">
+  <thead>
+    <tr>
+      <th field="id" hidden="true">角色ID</th>
+      <th field="name" width="200" halign="center">角色名称</th>
+      <th field="version" width="200" halign="center">版本</th>
+      <th field="opt" width="200" halign="center" data-options="
+        formatter: function(val,row,index) {
+          return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.role.edit('+index+')\'>修改</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.role.delete('+index+')\'>刪除</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.role.distributeUsers('+index+')\'>用户分配</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.role.distributeAuth('+index+')\'>权限分配</a>]';
+        }
+      ">操作</th>
+    </tr>
+  </thead>
+</table>
+<div id="RolesToolbar">
+  <div class="rs-datagrid-toolbar">
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="rs.dev.role.add()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 新增</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.role.query()">
+        <span class="rsutiltree glyphicon glyphicon-search" aria-hidden="true"> 查询</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.role.reset()">
+        <span class="rsutiltree glyphicon glyphicon-refresh" aria-hidden="true"> 重置</span>
+      </button>
+    </div>
+  </div>
+  <form id="searchFormRole" class="form-inline" method="post">
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>角色名称：</label>
+      <input name="name" class="easyui-textbox">
+    </div>
+  </form>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgRole">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">新增</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmRole" method="post" novalidate>
+          <div class="fitem" hidden="true">
+            <label>ID：</label>
+            <input name="id" class="easyui-textbox">
+          </div>
+          <div class="fitem">
+            <label>角色名称：</label>
+            <input name="name" class="easyui-textbox" required="true">
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button type="button" class="btn btn-primary" onclick="rs.dev.role.save(this)">保存</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="dlgAttribUsersRole" class="easyui-dialog" style="width:450px;height:500px;padding:10px 20px" closed="true" buttons="#dlgAttributtons" data-data-options="modal:true">
+  <div id="attibUsersLayout" class="easyui-layout" style="width:auto;height:400px">
+    <div data-options="region:'east',title:'已选人员',collapsible:false" style="width:150px;">
+      <table id="dgArributeUsersRole" class="easyui-datagrid" fitColumns="true" fit="true" singleSelect="true" idField="id">
+        <thead>
+          <tr>
+            <th field="id" hidden="true">ID</th>
+            <th field="name" width="100" halign="center">用户名</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+    <div data-options="region:'center'" border="false " style="padding:5px;">
+      <a href="javascript:void(0)" class="easyui-linkbutton c6" onclick="rs.dev.role.chooseUsers()" style="width:90px">选择</a>
+      <a href="javascript:void(0)" class="easyui-linkbutton c6" onclick="rs.dev.role.deleteUsers()" style="width:90px">删除</a>
+    </div>
+    <div data-options="region:'west',title:'人员列表',collapsible:false" style="width:150px;">
+      <table id="dgUsersRole" class="easyui-datagrid" fitColumns="true" fit="true" singleSelect="true" idField="id">
+        <thead>
+          <tr>
+            <th field="id" hidden="true">ID</th>
+            <th field="name" width="100" halign="center">用户名</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="dlgAttributtons">
+  <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="rs.dev.role.saveAttributeUsers(this)" style="width:90px">保存</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlgAttribUsersRole').dialog('close')" style="width:90px">取消</a>
+</div>
+<div id="dlgAttribMenuRole" class="easyui-dialog" style="width:650px;height:500px;padding:10px 20px" closed="true" data-data-options="modal:true">
+  <div id="layoutID" class="easyui-layout" fit="true">
+    <div class="easyui-panel" data-options="region:'west'" style="width:200px;height:500px;">
+      <table id="dgMenuRole" class="easyui-treegrid" fitColumns="true" fit="true" singleSelect="true" title="菜单列表" data-options="
+                    idField:'id',
+                    treeField:'name',
+                    checkbox:true,
+                    toolbar: [{
+                      text: '保存',
+                      iconCls: 'icon-ok',
+                      handler:  function(){
+                        rs.dev.role.saveAttributeMenu(this);
+                      }
+                    }],
+                    onSelect: function(row){
+                        if(row){
+                            if(row.children===undefined){
+                                rs.dev.role.getOpreationByMenuId(row.id);
+                                $('#dgOperationRole').datagrid({
+                                  title: '操作权限列表[' + row.name + ']'
+                                });
+                                rs.dev.role.getDtRuleByFuncId(row.id);
+                                $('#dgDtRuleRole').datagrid({
+                                  title: '数据权限列表[' + row.name + ']'
+                                });
+                            }
+                        }
+                    }
+                ">
+        <thead>
+          <tr>
+            <th field="name" width="100" halign="center">菜单名称</th>
+            <th field="id" hidden="true">ID</th>
+            <th field="pid" hidden="true" ">PID</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class= "easyui-panel " data-options="region: 'center' " style="width:200px;height:500px; ">
+            <table id="dgOperationRole " class="easyui-datagrid " fitColumns="true " fit="true " singleSelect="false " title="操作权限列表 " data-options="toolbar: [{ text: '保存', iconCls: 'icon-ok', handler: function(){ rs.dev.role.saveOperation(this); } }], onLoadSuccess: function(data){ if(data){ $.each(data.rows, function(index, eachRow){ if(eachRow.selected){ $( '#dgOperationRole').datagrid( 'selectRow', index); } }); } }, onCheckAll: function(){ $( '#dgOperationRole').datagrid( 'unselectRow',0); }, onBeforeCheck: function(index, row){ if (index===0 ){ $( '#dgOperationRole').datagrid( 'clearChecked'); }else { $( '#dgOperationRole').datagrid( 'unselectRow',0); } } ">
+                <thead>
+                    <tr>
+                        <th data-options="field: 'ck',checkbox:true "></th>
+                        <th field="name " width="100 " halign="center ">操作权限名称</th>
+                        <th field="id " hidden="true ">ID</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class= "easyui-panel " data-options="region: 'east' " style="width:200px;height:500px; ">
+            <table id="dgDtRuleRole " class="easyui-datagrid " fitColumns="true " fit="true " singleSelect="false " title="数据权限列表 " data-options="toolbar: [{ text: '保存', iconCls: 'icon-ok', handler: function(){ rs.dev.role.saveDtRule(this) } }], onLoadSuccess: function(data){ if(data){ $.each(data.rows, function(index, eachRow){ if(eachRow.selected){ $( '#dgDtRuleRole').datagrid( 'selectRow', index); } }); } }, onCheckAll: function(){ $( '#dgDtRuleRole').datagrid( 'unselectRow',0); }, onBeforeCheck: function(index, row){ if (index===0 ){ $( '#dgDtRuleRole').datagrid( 'clearChecked'); }else { $( '#dgDtRuleRole').datagrid( 'unselectRow',0); } } ">
+                <thead>
+                    <tr>
+                        <th data-options="field: 'ck',checkbox:true "></th>
+                        <th field="name " width="100 " halign="center ">数据权限名称</th>
+                        <th field="id " hidden="true ">ID</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script type="text/javascript ">
+rs.dev.role = jQuery.extend({}, rs.dev.default, (function($) {
+  var urlRole;
+  var methodRole;
+  var dgIdRole = 'dgRole';
+  var fmIdRole = 'fmRole';
+  var dlgIdRole = 'dlgRole';
+  var dlgIdAttribUsersRole = 'dlgAttribUsersRole';
+  var dgIdArributeUsersRole = 'dgArributeUsersRole';
+  var dlgIdAttribMenuRole = 'dlgAttribMenuRole';
+  var dlgIdDtRule = 'dlgDtRule';
+  var dgIdFuncRole = 'dgFuncRole';
+  var dgIDMenuRole = 'dgMenuRole';
+  var dgIdUsersRole = 'dgUsersRole'; 
+  var selectRoleIdRole;
+  var selectMenuIdRole;
+  var roleVideMode;
+  var addUserParam;
+  var delUserParam;
+
+  var dgIdOperationRole = 'dgOperationRole';
+  var dgIdDtRuleRole = 'dgDtRuleRole';
+  var menuIdRole;
+  initRolePage();
+
+  function initRolePage() {
+    rs.util.mapTabTitleDialogId([dlgIdRole, dlgIdAttribUsersRole, dlgIdAttribMenuRole]);
+    rs.util.datagridAutoSelectFirstRow(dgIdRole);
+  }
+
+  function addRole() {
+    // rs.util.test();
+    // $('#' + dlgIdRole).dialog('open').dialog('setTitle', '新增角色');
+    $('#'+dlgIdRole,rs.util.getSelectedTab()).modal('show');
+    $('h4', $('#'+dlgIdRole)).text('新增');
+    $('#' + fmIdRole).form('clear');
+    urlRole = '/admin/role';
+    methodRole = 'POST';
+    roleVideMode = rs.constant.VIEWMODE_ADD;
+  }
+
+  function editRole(index) {
+    if(index !== undefined){
+      $('#' + dgIdRole).datagrid('unselectAll');
+      $('#' + dgIdRole).datagrid('selectRow',index);
+    }
+    var row = $('#' + dgIdRole).datagrid('getSelected');
+    if (row) {
+      // $('#' + dlgIdRole).dialog('open').dialog('setTitle', '修改角色');
+      $('#'+dlgIdRole,rs.util.getSelectedTab()).modal('show');
+      $('h4', $('#'+dlgIdRole)).text('修改');
+      $('#' + fmIdRole).form('load', row);
+      urlRole = '/admin/role/'+row.id;
+      methodRole = 'PUT';
+      roleVideMode = rs.constant.VIEWMODE_EDIT;
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function saveRole(button) {
+    if ($('#' + fmIdRole).form('validate')) {
+      $(button).attr('disabled',"true");
+
+      var formData = rs.util.formGetData(fmIdRole);
+      var msg;
+      if (roleVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功';
+      } else if (roleVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlRole,
+        method: methodRole,
+        data: {
+          name: formData.name
+        },
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo(msg);
+            $('#'+dlgIdRole,rs.util.getSelectedTab()).modal('hide');
+            $('#' + dgIdRole).datagrid('reload');
+          }
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled');
+      });
+    }
+  }
+
+  function deleteRole(index) {
+    if(index!==undefined){
+      $('#' + dgIdRole).datagrid('unselectAll');
+      $('#' + dgIdRole).datagrid('selectRow',index);
+    }
+    var rows = $('#' + dgIdRole).datagrid('getSelections');
+    if (rows&&rows.length>0) {
+      if (rows.length === 1) {
+        var row = rows[0];
+        rs.util.messageConfirm('确认删除角色:' + row.name + '？','提醒',function(){
+          urlRole = '/admin/role';
+          methodRole = 'DELETE';
+          var param = [];
+          param.push(row.id);
+          rs.http.ajaxJson({
+            url: urlRole,
+            method: methodRole,
+            data: param,
+            success: function(result) {
+              if (result.error) {
+                  rs.util.messageError(result.error);
+              } else {
+                  rs.util.messageInfo("删除成功 ");
+                  $('#' + dgIdRole).datagrid('reload');
+              }
+            }
+          });
+        });
+      } else {
+        rs.util.messageConfirm('确认批量删除角色？','提醒',function(){
+          var param = [];
+          $.each(rows, function(index, row) {
+            param.push(row.id);
+          });
+          urlRole = '/admin/role';
+          methodRole = 'DELETE';
+          rs.http.ajaxJson({
+            url: urlRole,
+            method: methodRole,
+            data: param,
+            success: function(result) {
+              if (result.error) {
+                rs.util.messageError(result.error);
+              } else {
+                rs.util.messageInfo("删除成功 ");
+                $('#' + dgIdRole).datagrid('reload');
+              }
+            }
+          });
+        });
+      }
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function distributeUsers(index){
+    if(index!==undefined){
+      $('#' + dgIdRole).datagrid('selectRow',index);
+    }
+    var row = $('#' + dgIdRole).datagrid('getSelected');
+    if (row) {
+      selectRoleIdRole = row.id;
+      addUserParam = [];
+      delUserParam = [];
+
+      var d1 = rs.http.ajaxJson({
+        url: '/admin/role/'+selectRoleIdRole+'/userlist',
+        method: 'GET',
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            $('#'+dgIdArributeUsersRole).datagrid('loadData',result);
+          }
+        }
+      });
+
+      var d2 = rs.http.ajaxJson({
+        url: '/admin/user/list',
+        method: 'POST',
+        data: {},
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            $('#'+dgIdUsersRole).datagrid('loadData',result);
+          }
+        }
+      });
+
+      $.when(d1, d2).done(function(){
+        var attributeRows = $('#' + dgIdArributeUsersRole).datagrid('getData').rows;
+        if(attributeRows&&attributeRows.length>0){
+          $.each(attributeRows, function(index, row) {
+            var selectRowIndex = $('#' + dgIdUsersRole).datagrid('getRowIndex', row.id);
+            $('#' + dgIdUsersRole).datagrid('deleteRow', selectRowIndex);
+          });
+        }
+        $('#' + dlgIdAttribUsersRole).dialog('open').dialog('setTitle', '用户分配'); 
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function distributeAuth(index){
+    (index!==undefined)&& $('#'+ dgIdRole).datagrid('selectRow', index);
+
+    var row = $('#' + dgIdRole).datagrid('getSelected');
+    if (row) {
+      selectRoleIdRole = row.id;
+      rs.http.ajaxJson({
+        url: '/auth/r2m/'+selectRoleIdRole+'/menulist',
+        method: 'GET',
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            var treeData = rs.util.transFormTreeData('id','pid', result.rows);
+            $('#'+dgIDMenuRole).treegrid('loadData',treeData);
+            $.each(result.rows, function(index, item){
+              if(item.pid!=" "&& item.children==undefined){
+                if(item.selected){
+                  $('#'+dgIDMenuRole).treegrid('checkNode',item.id);
+                }else{
+                  $('#'+dgIDMenuRole).treegrid('uncheckNode',item.id);
+                }      
+              }
+            });
+            $('#'+dgIDMenuRole).treegrid('unselectAll');
+            $('#'+dgIdOperationRole).datagrid('loadData',{ total:30,rows:[] });
+            $('#'+dgIdOperationRole).datagrid({title: '操作权限列表'});
+            $('#'+dgIdDtRuleRole).datagrid('loadData',{ total:30,rows:[] });
+            $('#'+dgIdDtRuleRole).datagrid({title: '数据权限列表'});
+          }
+        }
+      }).done(function(){
+        $('#' + dlgIdAttribMenuRole).dialog('open').dialog('setTitle', '功能分配');   
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function distributeDtRuleAuth(index){
+    if(index!==undefined){
+      $('#' + dgIdRole).datagrid('selectRow',index); 
+    }
+    var row = $('#' + dgIdRole).datagrid('getSelected');
+    if (row) {  
+      selectRoleIdRole = row.id;
+      rs.http.ajaxJson({
+        url: '/admin/func/list',
+        method: 'POST',
+        data: {},
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            $('#'+dgIdFuncRole).datagrid('loadData',result);
+            rs.util.datagridAutoSelectFirstRow(dgIdFuncRole);
+          }
+        }
+      }).done(function(){
+        $('#' + dlgIdDtRule).dialog('open').dialog('setTitle', '功能分配');      
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+    function saveAttributeMenu(button){
+      $(button).linkbutton('disable');
+      var rows = $("# "+dgIDMenuRole).treegrid('getCheckedNodes');
+      var menus = [];
+      if (rows.length>0){
+        $.each(rows, function(index, row){
+          if(row.children===undefined){
+              menus.push(row.id);
+          }
+        });
+      }
+      rs.http.ajaxJson({
+        url: '/auth/r2m/'+selectRoleIdRole,
+        method: 'POST',
+        data: {
+          menus: menus
+        },
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo("分配成功！ ");
+            $('#' + dlgIdAttribMenuRole).dialog('close');
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+
+  function saveAttributeUsers(button){
+    if(addUserParam && addUserParam.length>0){
+      $(button).linkbutton('disable');
+
+      rs.http.ajaxJson({
+          url: '/admin/role/'+selectRoleIdRole+'/users',
+          method: 'POST',
+          data: {
+              users: addUserParam
+          },
+          success: function(result) {
+            if(delUserParam && delUserParam.length>0){
+              rs.http.ajaxJson({
+                url: '/admin/role/'+selectRoleIdRole+'/users',
+                method: 'DELETE',
+                data: {
+                    users: delUserParam
+                },
+                success: function(result) {
+                  if (result.errorMsg) {
+                    rs.util.messageError(result.errorMsg);
+                  } else {
+                    rs.util.messageInfo("成功分配用户！ ");
+                    $('#' + dlgIdAttribUsersRole).dialog('close');
+                  }
+                }
+              });
+            }else{
+              if (result.errorMsg) {
+                rs.util.messageError(result.errorMsg);
+              } else {
+                rs.util.messageInfo("成功分配用户！ ");
+                $('#' + dlgIdAttribUsersRole).dialog('close');
+              }
+            }
+          }
+        }).always(function() {
+          $(button).linkbutton('enable');
+        });
+    }else if(delUserParam&&delUserParam.length>0){
+      $(button).linkbutton('disable');
+
+      rs.http.ajaxJson({
+        url: '/admin/role/'+selectRoleIdRole+'/users',
+        method: 'DELETE',
+        data: {
+          users: delUserParam
+        },
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo("成功分配用户！ ");
+            $('#' + dlgIdAttribUsersRole).dialog('close');
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function chooseUsers(){
+    var rows = $('#' + dgIdUsersRole).datagrid('getSelections');
+    if (rows&&rows.length>0) {
+      $.each(rows, function(index, row) {
+        $('#' + dgIdArributeUsersRole).datagrid('appendRow', row);
+        var selectRowIndex = $('#' + dgIdUsersRole).datagrid('getRowIndex', row);
+        $('#' + dgIdUsersRole).datagrid('deleteRow', selectRowIndex);
+        var index = delUserParam.indexOf(row.id);
+        if(index!=-1){
+          delUserParam.splice(index,1);
+        }else{
+          addUserParam.push(row.id);
+        }
+      });
+    }
+  }
+
+  function deleteUsers(){
+    var rows = $('#' + dgIdArributeUsersRole).datagrid('getSelections');
+    if (rows&&rows.length>0) {
+      $.each(rows, function(index, row) {
+        $('#' + dgIdUsersRole).datagrid('appendRow', row);
+        var selectRowIndex = $('#' + dgIdArributeUsersRole).datagrid('getRowIndex', row);
+        $('#' + dgIdArributeUsersRole).datagrid('deleteRow', selectRowIndex);
+        //判断是否是刚加进去的
+        var index = addUserParam.indexOf(row.id);
+        if(index!=-1){
+          addUserParam.splice(index,1);
+        }else{
+          delUserParam.push(row.id);
+        }
+      });
+    }
+  }
+
+  function getOpreationByMenuId(id){
+    menuIdRole = id;
+    rs.http.ajaxJson({
+      url: '/auth/r2m/r2o/'+ selectRoleIdRole + '/' + menuIdRole,
+      method: 'GET',
+      success: function(result) {
+        var hasAuth = false;
+        $.each(result.rows, function(index, row){
+          if (row.selected == true){
+            hasAuth = true;
+            return false;
+          }
+        });
+        result.rows.unshift({name:"所有权限 ", selected: !hasAuth});
+        rs.util.datagridSetData(dgIdOperationRole, result.rows);
+      }
+    });  
+  }
+
+  function getDtRuleByFuncId(menuId){
+    selectMenuIdRole = menuId;
+    rs.http.ajaxJson({
+      url: '/auth/r2dt/' + selectRoleIdRole + '/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        var hasAuth = false;
+        $.each(result.rows, function(index, row){
+          if (row.selected == true){
+            hasAuth = true;
+            return false;
+          }
+        });
+        result.rows.unshift({name:"所有权限 ", selected: !hasAuth});
+        rs.util.datagridSetData(dgIdDtRuleRole, result.rows);         
+      }
+    });    
+  }
+
+  function saveOperation(button){
+    var rows = $('#'+ dgIdOperationRole).datagrid('getSelections');
+    if(rows){  
+      $(button).linkbutton('disable');
+
+      var OperationIds = [];
+      $.each(rows, function (index, row){
+        if(row.id)
+          OperationIds.push(row.id);
+      });
+      rs.http.ajaxJson({
+        url: '/auth/r2m/operation/'+ selectRoleIdRole+'/'+ menuIdRole,
+        method: 'PUT',
+        data: {
+          operations: OperationIds    
+        },
+        success: function(result) {
+          getOpreationByMenuId(menuIdRole);
+          rs.util.messageInfo("保存成功 ");
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function saveDtRule(button){
+    var rows = $('#'+ dgIdDtRuleRole).datagrid('getSelections');
+    if(rows){ 
+      $(button).linkbutton('disable');
+      var dtRuleIds = [];
+      $.each(rows, function(index, row){
+        if(row.id)
+          dtRuleIds.push(row.id);
+      });
+      rs.http.ajaxJson({
+        url: '/auth/r2dt',
+        method: 'POST',
+        data: {
+          roleid: selectRoleIdRole,
+            menus: [
+            {
+              menuid: selectMenuIdRole,
+              dtrules: dtRuleIds
+            } 
+          ]    
+        },
+        success: function(result) {
+          getDtRuleByFuncId(selectMenuIdRole);
+          rs.util.messageInfo("保存成功 ");
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function queryRole(){
+    $('#'+dgIdRole).datagrid('reload');
+  }
+
+  function resetRole(){
+    $('#searchFormRole').form('clear');
+  }
+
+  return {
+    add: addRole,
+    edit: editRole,
+    save: saveRole,
+    delete: deleteRole,
+    chooseUsers: chooseUsers,
+    deleteUsers: deleteUsers,
+    saveAttributeUsers: saveAttributeUsers,
+    saveAttributeMenu: saveAttributeMenu,
+    saveOperation: saveOperation,
+    saveDtRule: saveDtRule,
+    distributeUsers: distributeUsers,
+    distributeAuth: distributeAuth,
+    distributeDtRuleAuth: distributeDtRuleAuth,
+    getOpreationByMenuId: getOpreationByMenuId,
+    getDtRuleByFuncId: getDtRuleByFuncId
+  };
+
+})(jQuery));
+</script>

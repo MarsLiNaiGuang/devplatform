@@ -1,0 +1,307 @@
+<#assign base=request.contextPath />
+<!-- 权限查询页面 -->
+<!-- DataGrid -->
+<div id= "queryLayoutID" class="easyui-layout" fit="true" border="false">
+  <div class="easyui-panel" data-options="region:'north',collapsed:false,split:true">
+    <form id="searchFormQuery" method="post">
+      <table>
+        <tr>
+          <td>
+            <label>角色：</label>
+            <input name="roleId" id="roleId" editable="false" class="easyui-combobox" data-options="valueField:'id',textField:'name', panelHeight:'auto', value:'',
+            loadFilter: function(data) {
+            var opts = $(this).combobox('options');
+            var emptyRow = {};
+            emptyRow[opts.valueField] = '';
+            emptyRow[opts.textField] = '&nbsp;';
+            data.unshift(emptyRow);
+            return data;
+           }
+          ">
+          </td>
+          <td>   
+            <label>用户：</label>
+            <input name="userId" id="userId" editable="false" class="easyui-combobox" data-options="valueField:'id',textField:'name', panelHeight:'auto', value:'',
+            loadFilter: function(data) {
+            var opts = $(this).combobox('options');
+            var emptyRow = {};
+            emptyRow[opts.valueField] = '';
+            emptyRow[opts.textField] = '&nbsp;';
+            data.unshift(emptyRow);
+           return data;
+            }
+            ">
+          </td>
+          <td><a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="rs.dev.query.queryMenu()">查询</a>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </div>
+
+  <div class= "easyui-panel" data-options="region:'west'" style="width:30%">
+    <table id="dgQueryMenu" title="菜单列表" class="easyui-treegrid" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" data-options="idField: 'id', treeField: 'name', checkbox:true, onBeforeCheckNode: function(){
+      if(!rs.dev.query.bAllowCheckMenuQuery){
+        return false;
+      }   
+    },
+    onSelect: function(row){
+      if(row){
+        if(row.children===undefined){
+          rs.dev.query.getOperationByMenuId(row.id);
+          rs.dev.query.getDtRuleByFuncId(row.id);
+        }
+      }
+    }">
+      <thead>
+        <tr>
+          <th field="name" width="200" halign="center">菜单名</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+
+  <div class= "easyui-panel" data-options="region:'center'" style="width:35%">
+    <table id="dgQueryOperation" class="easyui-datagrid" title="操作权限" rownumbers="true" fitColumns="true" singleSelect="false" fit="true" data-options="
+    onLoadSuccess: function(data){
+      if(data){
+        $.each(data.rows, function(index, eachRow){
+          if(eachRow.selected){
+            rs.dev.query.bChecked = true;
+            $('#dgQueryOperation').datagrid('checkRow', index);
+            rs.dev.query.bChecked = false;
+          }
+        });
+      }
+    }, 
+    onBeforeCheck: function(index, row){
+      if(!rs.dev.query.bChecked){
+        return false;
+      }
+    },
+    onBeforeUncheck: function(index, row){
+      if(!rs.dev.query.bChecked){
+        return false;
+      }
+    }">
+      <thead>
+        <tr>
+          <th data-options="field:'ck',checkbox:true"></th>
+          <th field="id" hidden="true">操作权限编码</th>
+          <th field="name" width="200" halign="center">操作权限名称</th>
+          <th field="descp" width="200" halign="center">操作权限描述</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+
+  <div class= "easyui-panel" data-options="region:'east'" style="width:35%">
+    <table id="dgDtRule" class="easyui-datagrid" fitColumns="true" fit="true" singleSelect="false" toolbar="#dtRuleToolbar" title="数据权限列表" data-options="onLoadSuccess: function(data){
+      if(data){
+        $.each(data.rows, function(index, eachRow){
+          if(eachRow.selected){
+            rs.dev.query.bChecked = true;
+            $('#dgDtRule').datagrid('checkRow', index);
+            rs.dev.query.bChecked = false;
+          }
+        });
+      }
+    }, 
+    onBeforeCheck: function(index, row){
+      if(!rs.dev.query.bChecked){
+        return false;
+      }
+    },
+    onBeforeUncheck: function(index, row){
+      if(!rs.dev.query.bChecked){
+        return false;
+      }
+    }">
+      <thead>
+        <tr>
+          <th data-options="field:'ck',checkbox:true"></th>
+          <th field="name" width="100" halign="center">数据权限名称</th>
+          <th field="descp" width="100" halign="center">数据权限描述</th>
+          <th field="id" hidden="true">ID</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+
+<script type="text/javascript">
+rs.dev.query = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var dgIdQueryMenu = 'dgQueryMenu';
+  var dgIdQueryOperation = 'dgQueryOperation';
+  var userId;
+  var dgIdDtRule = 'dgDtRule';
+  var bChecked = false;
+  var bAllowCheckMenuQuery;
+  var queryType;
+  getInitData();
+
+  function getInitData(){
+    getUserData();
+    getRoleData();
+    $('#roleId').combobox({
+      onSelect: function(record){
+        if(record.id!=""){
+          rs.http.get({
+            url: '/admin/role/'+record.id+'/userlist',
+            success: function(result) {
+              var userData = result.rows;
+              $('#userId').combobox({
+                  data: userData
+              });
+            }
+          }); 
+        }else{
+          getUserData();
+        }
+      }
+    });
+  }
+
+function getUserData(){
+  rs.http.ajaxJson({
+    url: '/admin/user/list',
+    method: 'POST',
+    data: {},
+    success: function(result) {
+      var userData = result.rows;
+      $('#userId').combobox({
+        data: userData
+      });
+    }
+  });
+}
+
+function getRoleData(){
+  rs.http.ajaxJson({
+    url: '/admin/role/list',
+    method: 'POST',
+    data: {},
+    success: function(result) {
+      var roleData = result.rows;
+      $('#roleId').combobox({
+        data: roleData
+      });
+    }
+  });
+}
+
+function getOperationByMenuId(menuId){
+  if(queryType == "userId"){
+    rs.http.ajaxJson({
+      url: '/auth/query/u2o/'+ userId+ '/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        rs.util.datagridSetData(dgIdQueryOperation, result);       
+      }
+    });  
+  } else if (queryType=="roleId") {
+    rs.http.ajaxJson({
+      url: '/auth/r2m/r2o/'+ roleId + '/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        rs.util.datagridSetData(dgIdQueryOperation, result);     
+      }
+    });
+  }
+}
+
+function queryMenu(){
+  userId = $('#userId').combobox('getValue');
+  if(userId==''){
+    roleId = $('#roleId').combobox('getValue');
+    if(roleId==""){
+      rs.util.messageInfo("角色和用户不允许同时为空！");
+    }else{
+      queryType = "roleId";
+      getMenuIdByRoleId(roleId);
+      $('#'+dgIdQueryOperation).datagrid({data: []});
+      $('#'+dgIdDtRule).datagrid({data: []});
+    }    
+  }else{
+    queryType = "userId";
+    getMenuListByUserId(userId);
+    $('#'+dgIdQueryOperation).datagrid({data: []});
+    $('#'+dgIdDtRule).datagrid({data: []});
+  }    
+}
+
+function getDtRuleByFuncId(menuId){
+  if(queryType=="userId"){
+    rs.http.ajaxJson({
+      url: '/auth/query/u2dt/' + userId + '/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        rs.util.datagridSetData(dgIdDtRule, result.rows);         
+      }
+    });  
+  }else if(queryType=="roleId"){
+    rs.http.ajaxJson({
+      url: '/auth/r2dt/' + roleId + '/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        rs.util.datagridSetData(dgIdDtRule, result.rows);         
+      }
+    });
+  }  
+}
+
+function getMenuListByUserId(userId){
+  rs.http.ajaxJson({
+    url: '/auth/query/u2m/'+ userId,
+    method: 'GET',
+    success: function(result) {
+      var treeData = rs.util.transFormTreeData('id','pid', result.rows);
+      $('#'+dgIdQueryMenu).treegrid('loadData',treeData);
+      $.each(result.rows, function(index, item){
+        if(item.pid!=""){
+          rs.dev.query.bAllowCheckMenuQuery = true;
+          if(item.selected){
+            $('#'+dgIdQueryMenu).treegrid('checkNode',item.id);
+          }else{
+            $('#'+dgIdQueryMenu).treegrid('uncheckNode',item.id);
+          } 
+          rs.dev.query.bAllowCheckMenuQuery = false;
+        }
+      });   
+    }
+  });   
+}
+
+function getMenuIdByRoleId(roleId){
+  rs.http.ajaxJson({
+    url: '/auth/r2m/'+roleId+'/menulist',
+    method: 'GET',
+    success: function(result) {
+      var treeData = rs.util.transFormTreeData('id','pid', result.rows);
+      $('#'+dgIdQueryMenu).treegrid('loadData',treeData);
+      $.each(result.rows, function(index, item){
+        if(item.pid!=""){
+          rs.dev.query.bAllowCheckMenuQuery = true;
+          if(item.selected){
+            $('#'+dgIdQueryMenu).treegrid('checkNode',item.id);
+          }else{
+            $('#'+dgIdQueryMenu).treegrid('uncheckNode',item.id);
+          } 
+          rs.dev.query.bAllowCheckMenuQuery = false;     
+        }
+      });
+    }
+  });
+}
+
+return {
+  getOperationByMenuId: getOperationByMenuId,
+  bAllowCheckMenuQuery: bAllowCheckMenuQuery,
+  bChecked: bChecked,
+  getDtRuleByFuncId: getDtRuleByFuncId,
+  queryMenu: queryMenu
+};
+
+})(jQuery));
+</script>>

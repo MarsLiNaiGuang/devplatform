@@ -1,0 +1,362 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<div id="mainLayoutDataDict" class="easyui-layout" fit="true">
+  <div class="easyui-panel" data-options="region:'center'">
+    <table id="dgDatadict" class="easyui-datagrid" url="${base}/admin/datadict/list" method="POST" toolbar="#tbDatadict" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" data-options="onBeforeLoad: 
+        function (param) {
+            var searchparam = rs.util.getSearchParam('searchfmDataDict');
+            $.extend(param, searchparam);
+        }">
+      <thead>
+        <tr>
+          <th field="id" hidden="true">ID</th>
+          <th field="version" hidden="true">ID</th>
+          <th field="cdtype" width="200" halign="center">字典编码</th>
+          <th field="name" width="200" halign="center">字典名称</th>
+          <th field="opt" width="200" halign="center" data-options="
+                    formatter: function(val,row,index) {
+                        return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.datadict.clickEditDetail('+index+')\'>查看类型</a>]';
+                    }
+                ">操作</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+  <div class="easyui-panel" data-options="region:'east',collapsed:true, split:true" title="数据字典列表明细" style="width:300px">
+    <table id="dgDatadictDetail" class="easyui-datagrid" toolbar="#tbDatadictDetail" pagination="false" rownumbers="true" fitColumns="true" singleSelect="true" fit="true">
+      <thead>
+        <tr>
+          <th field="id" hidden="true">ID</th>
+          <th field="cddescp" width="200" halign="center">描述</th>
+          <th field="cdval" width="200" halign="center">值</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+<div id="tbDatadict">
+  <div class="rs-datagrid-toolbar">
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.add()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 新增</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.edit()">
+        <span class="rsutiltree glyphicon glyphicon-edit" aria-hidden="true"> 修改</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.delete()">
+        <span class="rsutiltree glyphicon glyphicon-trash" aria-hidden="true"> 删除</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.query()">
+        <span class="rsutiltree glyphicon glyphicon-search" aria-hidden="true"> 查询</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.reset()">
+        <span class="rsutiltree glyphicon glyphicon-refresh" aria-hidden="true"> 重置</span>
+      </button>
+    </div>
+  </div>
+  <form id="searchfmDataDict" method="post" class="form-inline">
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>字典编码：</label>
+      <input name="cdtype" class="easyui-textbox">
+    </div>
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>字典名称：</label>
+      <input name="name" class="easyui-textbox">
+    </div>
+  </form>
+</div>
+<div id="tbDatadictDetail">
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="rs.dev.datadict.addDetail()">新增</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="rs.dev.datadict.editDetail()">修改</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="rs.dev.datadict.deleteDetail()">删除</a>
+</div>
+
+<!-- Dialog -->
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgDatadict">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">新增</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmDatadict" method="post" novalidate>
+          <div class="fitem" hidden="true">
+            <label>ID：</label>
+            <input name="id" class="easyui-textbox">
+          </div>
+          <div class="fitem" hidden="true">
+            <label>version：</label>
+            <input name="version" class="easyui-textbox">
+          </div>
+          <div class="fitem">
+            <label>字典编码：</label>
+            <input name="cdtype" class="easyui-textbox" required="true">
+          </div>
+          <div class="fitem">
+            <label>字典名称：</label>
+            <input name="name" class="easyui-textbox">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button type="button" class="btn btn-primary" onclick="rs.dev.datadict.save(this)">保存</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dialog -->
+<div id="dlgDatadictDetail" class="easyui-dialog" style="width:370px;height:300px;padding:10px 20px" closed="true" buttons="#dlgDatadictDetail-buttons" data-options="modal:true">
+  <div class="ftitle">数据字典信息明细</div>
+  <form id="fmDatadictDetail" method="post" novalidate>
+    <div class="fitem">
+      <label>描述：</label>
+      <input name="cddescp" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>值：</label>
+      <input name="cdval" class="easyui-textbox">
+    </div>
+  </form>
+</div>
+
+<div id="dlgDatadictDetail-buttons">
+  <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="rs.dev.datadict.saveDetail(this)" style="width:90px">保存</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlgDatadictDetail').dialog('close')" style="width:90px">取消</a>
+</div>
+<!-- JavaScript -->
+<script type="text/javascript">
+rs.dev.datadict = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var urlDatadict;
+  var urlDatadictDetail;
+  var methodDatadict;
+  var methodDatadictDetail;
+  var dgIdDatadict = 'dgDatadict';
+  var dgIdDatadictDetail = 'dgDatadictDetail';
+  var fmIdDatadict = 'fmDatadict';
+  var fmIdDatadictDetail = 'fmDatadictDetail';
+  var dlgIdDatadict = 'dlgDatadict';
+  var dlgIdDatadictDetail = 'dlgDatadictDetail';
+  var datadictVideMode;
+  var datadictDetailsVideMode;
+  var layoutID = 'layoutID';
+  var ID;
+  initDatadictPage();
+
+  function initDatadictPage() {
+    rs.util.mapTabTitleDialogId([dlgIdDatadict, dlgIdDatadictDetail]);
+    rs.util.datagridAutoSelectFirstRow(dgIdDatadict);
+  }
+  // rs.util.datagridAutoSelectFirstRow(dgIdDatadict);
+
+  function addDatadict() {
+    $('#'+dlgIdDatadict).modal('show');
+    $('h4', $('#'+dlgIdDatadict)).text('新增数据字典');
+    $('#' + fmIdDatadict).form('clear');
+    urlDatadict = '/admin/datadict';
+    methodDatadict = 'POST';
+    datadictVideMode = rs.constant.VIEWMODE_ADD;
+  }
+
+  function editDatadict() {
+    debugger;
+    var row = $('#' + dgIdDatadict).datagrid('getSelected');
+    if (row) {
+      $('#'+dlgIdDatadict).modal('show');
+      $('h4', $('#'+dlgIdDatadict)).text('修改数据字典');
+      rs.util.formSetData(fmIdDatadict, row);
+      urlDatadict = '/admin/datadict/' + row.id;
+      methodDatadict = 'PUT';
+      datadictVideMode = rs.constant.VIEWMODE_EDIT;
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function saveDatadict(button) {
+    if ($('#' + fmIdDatadict).form('validate')) {
+      $(button).attr('disabled',"true");
+      var formData = rs.util.formGetData(fmIdDatadict);
+      var msg;
+      if (datadictVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功';
+      } else if (datadictVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlDatadict,
+        method: methodDatadict,
+        data: formData,
+        success: function(result) {
+          rs.util.messageInfo(msg);
+          $('#'+dlgIdDatadict).modal('hide');
+          $('#' + dgIdDatadict).datagrid('reload');
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled');
+      });
+    }
+  }
+
+  function deleteDatadict() {
+    var row = $('#' + dgIdDatadict).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm('确认删除此数据字典？', '提醒', function() {
+        urlDatadict = '/admin/datadict/' + row.id;
+        methodDatadict = 'DELETE';
+        rs.http.ajaxJson({
+          url: urlDatadict,
+          method: methodDatadict,
+          data: {
+            version: row.version
+          },
+          success: function(result) {
+            rs.util.messageInfo('删除成功');
+            $('#' + dgIdDatadict).datagrid('reload');
+          }
+        });
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function formatOper(val, row, index) {
+    return '[<a href="javascript:void(0)" onclick="rs.dev.datadict.clickEditDetail(' + index + ')">查看类型</a>]';
+  }
+
+
+  function clickEditDatadictDetail(index) {
+    $('#' + dgIdDatadict).datagrid('selectRow', index); // 关键在这里
+    var row = $('#' + dgIdDatadict).datagrid('getSelected');
+    if (row) {
+      urlDatadictDetail = '/admin/datadict/' + row.id + '/cdval';
+      methodDatadictDetail = 'GET';
+      rs.http.ajaxJson({
+        url: urlDatadictDetail,
+        method: methodDatadictDetail,
+        success: function(result) {
+          rs.util.datagridSetData(dgIdDatadictDetail, result);
+          ID = row.id;
+          var p = $("#mainLayoutDataDict").layout("panel", "east")[0].clientWidth;
+          if (p <= 0) {
+            $("#mainLayoutDataDict").layout('expand', 'east');
+          }
+        }
+      });
+    }
+  }
+
+  function addDatadictDetail() {
+    $('#' + dlgIdDatadictDetail).dialog('open').dialog('setTitle', '新增数据字典明细');
+    $('#' + fmIdDatadictDetail).form('clear');
+    urlDatadictDetail = '/admin/datadict/' + ID;
+    methodDatadictDetail = 'POST';
+    datadictDetailVideMode = rs.constant.VIEWMODE_ADD;
+  }
+
+  function editDatadictDetail() {
+    var row = $('#' + dgIdDatadictDetail).datagrid('getSelected');
+    if (row) {
+      $('#' + dlgIdDatadictDetail).dialog('open').dialog('setTitle', '修改数据字典');
+      $('#' + fmIdDatadictDetail).form('load', row);
+      urlDatadictDetail = '/admin/datadict/cdval/' + row.id;
+      methodDatadictDetail = 'PUT';
+      datadictDetailVideMode = rs.constant.VIEWMODE_EDIT;
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function deleteDatadictDetail() {
+    var row = $('#' + dgIdDatadictDetail).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm('确认删除此数据字典明细？', '提醒', function() {
+        urlDatadictDetail = '/admin/datadict/cdval/' + row.id;
+        methodDatadictDetail = 'DELETE';
+        rs.http.ajaxJson({
+          url: urlDatadictDetail,
+          method: methodDatadictDetail,
+          success: function(result) {
+            rs.util.messageInfo('删除成功');
+            urlDatadictDetail = '/admin/datadict/' + ID + '/cdval';
+            methodDatadictDetail = 'GET';
+            rs.http.ajaxJson({
+              url: urlDatadictDetail,
+              method: methodDatadictDetail,
+              success: function(result) {
+                rs.util.datagridSetData(dgIdDatadictDetail, result);
+              }
+            });
+          }
+        });
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function saveDatadictDetail(button) {
+    if ($('#' + fmIdDatadictDetail).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdDatadictDetail);
+      var msg;
+      var saveData;
+      if (datadictDetailVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功';
+        saveData = {
+          cdvals: [formData]
+        }
+      } else if (datadictDetailVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+        saveData = formData;
+      }
+      rs.http.ajaxJson({
+        url: urlDatadictDetail,
+        method: methodDatadictDetail,
+        data: saveData,
+        success: function(result) {
+          rs.util.messageInfo(msg);
+          $('#' + dlgIdDatadictDetail).dialog('close');
+          urlDatadictDetail = '/admin/datadict/' + ID + '/cdval';
+          methodDatadictDetail = 'GET';
+          rs.http.ajaxJson({
+            url: urlDatadictDetail,
+            method: methodDatadictDetail,
+            success: function(result) {
+              rs.util.datagridSetData(dgIdDatadictDetail, result);
+            }
+          });
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function queryDatadict() {
+    $('#' + dgIdDatadict).datagrid('reload');
+  }
+
+  function resetDatadict() {
+    $('#searchfmDataDict').form('clear');
+  }
+
+  return {
+    add: addDatadict,
+    edit: editDatadict,
+    delete: deleteDatadict,
+    save: saveDatadict,
+    clickEditDetail: clickEditDatadictDetail,
+    addDetail: addDatadictDetail,
+    editDetail: editDatadictDetail,
+    deleteDetail: deleteDatadictDetail,
+    saveDetail: saveDatadictDetail
+  };
+
+})(jQuery));
+</script>

@@ -1,0 +1,21 @@
+{
+  "name": "RSDevPlatform",
+  "version": "0.1.0",
+  "description": "RS Dev Platform API",
+  "title": "RS Dev Platform",
+  "url" : "",
+  "header": {
+    "title": "API START"
+  },
+  "footer": {
+    "title": "API END"
+  },
+  "order": [
+    "GetUser",
+    "PostUser"
+  ],
+  "template": {
+  	"withCompare": true,
+  	"withGenerator": true
+  }
+}

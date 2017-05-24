@@ -1,0 +1,189 @@
+<#assign base=request.contextPath />
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base id="base" href="${base}">
+  <title>用户面板</title>
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/bootstrap/css/bootstrap.min.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/jquery-easyui/themes/bootstrap/easyui.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/lib/jquery-easyui/themes/icon.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-common.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-formlist.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-autolist.css')}">
+  <link rel="stylesheet" href="${base}${urls.getForLookupPath('/css/rs-manage.css')}">
+  <script>
+  window.rsContextPath = '${base}';
+  </script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/jquery.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/jquery.easyui.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/jquery-easyui/extension/datagrid-dnd.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/moment.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/clipboard.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/lib/bootstrap/js/bootstrap.min.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-util.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-easyui.js')}"></script>
+  <script src="${base}${urls.getForLookupPath('/js/rs-im.js')}"></script>
+</head>
+
+<body>
+  <div style="margin-bottom:10px;">
+    <span id="spanWelcomeUser">欢迎你！</span>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-no'" onclick="onLogoutInUserPage()">注销</a>
+    <span style="margin-right:5px;float:right;">
+        <input name="pid" id="cmbProject" editable="false" class="easyui-combobox" data-options="valueField:'id',textField:'name', panelHeight:'auto'">
+      </span>
+  </div>
+  <div id="welcomeUser">
+    <h2>主页</h2>
+    <div>欢迎来到项目开发平台！</div>
+  </div>
+  <div id="layoutUser" style="width:100%;height:768px;">
+    <!-- nav -->
+    <div data-options="region:'west',split:true" title="功能导航" style="width:20%;">
+      <ul id="navTreeUser" class="easyui-tree"></ul>
+    </div>
+    <!-- content -->
+    <div data-options="region:'center',title:'Main Title',iconCls:'icon-ok'">
+      <div id="contentTabsUser" class="easyui-tabs" data-options="fit:true,border:false,plain:true">
+        <div title="首页" style="padding:10px"></div>
+      </div>
+    </div>
+    <!-- footer -->
+    <div data-options="region:'south',split:true" style="height:50px;">
+      Copyright
+    </div>
+  </div>
+  <!-- JavaScript -->
+  <script>
+  var welcomeUser = 'welcomeUser';
+  var layoutUser = 'layoutUser';
+  var gUserTabsId = 'contentTabsUser';
+  var gNavTreeUserId = 'navTreeUser';
+  initUserIndexPage();
+
+  function initUserIndexPage() {
+    $('#' + gUserTabsId).tabs({
+      onClose: function(title) {
+        if (window.tabDialogMapUser && window.tabDialogMapUser[title]) {
+          var dialogId = window.tabDialogMapUser[title];
+          if (typeof dialogId === 'string') {
+            $('#' + dialogId).dialog('destroy');
+          } else if ($.isArray(dialogId)) {
+            $.each(dialogId, function(index, dlgId) {
+              $('#' + dlgId).dialog('destroy');
+            });
+          }
+        }
+      }
+    });
+  }
+
+  $(function() {
+    $('#' + layoutUser).layout();
+    setHeight();
+    initUserIndex();
+  });
+
+  function setHeight() {
+    var c = $('#' + layoutUser);
+    var p = c.layout('panel', 'center');
+    var oldHeight = p.panel('panel').outerHeight();
+    p.panel('resize', {
+      height: 'auto'
+    });
+    var newHeight = p.panel('panel').outerHeight();
+    c.layout('resize', {
+      height: (c.height() + newHeight - oldHeight)
+    });
+  }
+
+  function initUserIndex() {
+    $('#' + welcomeUser).show();
+    $('#' + layoutUser).hide();
+
+    rs.util.navTreeRefresh(gNavTreeUserId);
+    var username = localStorage.getItem('username');
+    username && $('#spanWelcomeUser').text('欢迎你，' + username + '！');
+
+    $('#' + gNavTreeUserId).tree({
+      onSelect: function(node) {
+        if (node && node.attributes && node.attributes.url) {
+          rs.util.navTabsAddInUserPage({
+            title: node.text,
+            href: node.attributes.url
+          });
+        }
+      }
+    });
+
+    $('#' + gUserTabsId).tabs({
+      onBeforeClose: function(title) {
+        console.log('onBeforeClose', title);
+      },
+      onClose: function(title, index) {
+        console.log('close tab', title, index);
+      }
+    });
+
+    $('#cmbProject').combobox({
+      loadFilter: function(data) {
+        var opts = $(this).combobox('options');
+        var emptyRow = {};
+        emptyRow[opts.valueField] = '';
+        emptyRow[opts.textField] = '选择一个项目……';
+        data.unshift(emptyRow);
+        return data;
+      },
+      onSelect: function(record) {
+        var projectId = record.id;
+        console.log('record', record);
+        if (projectId) {
+          rs.http.get({
+            url: '/manager/project/' + projectId + '/switch',
+            success: function(result) {
+              onSwitchProjectInUserPage();
+            },
+            error: function(result) {
+              rs.util.messageError(result.errorMsg || '项目切换失败');
+            }
+          });
+        }
+      }
+    });
+
+    rs.http.ajax({
+      url: '/manager/projects',
+      method: 'POST',
+      data: 'x=1',
+      success: function(result) {
+        $('#cmbProject').combobox('loadData', result.rows || []);
+      },
+      error: function(result) {
+        rs.util.messageError(result.errorMsg || '项目列表获取失败');
+      }
+    });
+  }
+
+  function onSwitchProjectInUserPage() {
+    $('#' + welcomeUser).hide();
+    $('#' + layoutUser).show();
+
+    rs.util.navTreeRefresh(gNavTreeUserId);
+    rs.util.tabsCloseAllButFirstTab(gUserTabsId);
+  }
+
+  function onLogoutInUserPage() {
+    rs.util.messageConfirm('确认退出系统？', '提醒', function() {
+      location.href = '${base}/logout';
+    })
+  }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,733 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<table id="dgDbTable" class="easyui-datagrid" url="${base}/admin/db/tables" method="POST" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" toolbar="#tableListToolbar" data-options="
+  onBeforeLoad: function (param) {
+    var searchParam = rs.util.getSearchParam('searchForm'); 
+    $.extend(param, searchParam);
+        }
+">
+  <thead>
+    <tr>
+      <th field="id" hidden="true">ID</th>
+      <th field="tablename" width="150" halign="center">表名</th>
+      <th field="tabledescp" width="250" halign="center">表描述</th>
+      <th field="version" width="100" halign="center">版本</th>
+      <th field="isdbsyn" width="150" halign="center" data-options="
+        formatter: function(value) {
+          return (value === 'Y') ? '已同步' : '未同步';
+        },
+        styler: function(value,row,index){
+          if (value !== 'Y') {
+            return 'background-color:red;';
+          }
+        }
+      ">同步数据库</th>
+    </tr>
+  </thead>
+</table>
+
+<!-- toobar -->
+<div id="tableListToolbar">
+  <div class="rs-datagrid-toolbar">
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.addForm()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 创建表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.editForm()">
+        <span class="rsutiltree glyphicon glyphicon-edit" aria-hidden="true"> 编辑表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.promptDeleteForm()">
+        <span class="rsutiltree glyphicon glyphicon-trash" aria-hidden="true"> 删除表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.promptSyncDatabase()">
+        <span class="rsutiltree glyphicon glyphicon-upload" aria-hidden="true"> 同步数据库</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.query()">
+        <span class="rsutiltree glyphicon glyphicon-search" aria-hidden="true"> 查询</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.dbtable.reset()">
+        <span class="rsutiltree glyphicon glyphicon-refresh" aria-hidden="true"> 重置</span>
+      </button>
+    </div>
+  </div>
+  <form id="searchForm" method="post" class="form-inline">
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>表名：</label>
+      <input class="easyui-textbox inputxt" name="tablename" data-options="onChange: function(newValue,oldValue){
+        $(this).textbox('setValue', newValue.toLowerCase());
+      }">
+    </div>
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>表描述：</label>
+      <input class="easyui-textbox inputxt" name="tabledescp">
+    </div>
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>同步数据库：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="isdbsyn" data-options="value:'', valueField: 'id', textField: 'text', 
+      data: [{id: '', text: '&nbsp'}, {id: 'Y', text: '已同步'}, {id: 'N', text: '未同步'}]">
+    </div>
+  </form>
+</div>
+
+<!-- Dialog -->
+<div id="dlgDbTable" class="easyui-dialog" style="width:780px;" closed="true" data-options="modal:true, buttons: [
+  {
+    text: '保存',
+    iconCls: 'rsutiltree glyphicon glyphicon-ok',
+    handler: function(){
+      rs.dev.dbtable.saveForm(this);
+    }
+  },{
+    text: '取消',
+    iconCls: 'rsutiltree glyphicon glyphicon-remove',
+    handler: function(){
+      $('#dlgDbTable').dialog('close');
+    }
+  }
+]">
+  <form id="formDbTable" method="post" class="form-inline" novalidate>
+    <div hidden="true">
+      <input name="id" class="easyui-textbox">
+      <input name="version" class="easyui-textbox">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label">表名：</label>
+      <input id="inputFormTableName" class="easyui-textbox inputxt" name="tablename" required="true" tipPosition="top" data-options="onChange: function(newValue,oldValue){
+        $(this).textbox('setValue', newValue.toLowerCase());}">
+      <span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label">表描述：</label>
+      <input class="easyui-textbox inputxt" name="tabledescp" required="true" tipPosition="top"><span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label">主键策略：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="pktype" data-options="textField: 'text', valueField: 'value', value:'UUID', data:[{value:'UUID', text:'UUID:32位唯一编码'}]">
+    </div>
+  </form>
+  <!-- DataGrid 数据网络-->
+  <div id="tabsDbTable" class="easyui-tabs">
+    <div title="数据库属性" style="padding:10px">
+      <table id="dgFormDetailDb" class="easyui-datagrid" style="width:auto;height:300px;" data-options="rownumbers: true, singleSelect: false, checkOnSelect: false, toolbar: [
+          {
+            text: '添加字段',
+            iconCls: 'rsutiltree glyphicon glyphicon-plus',
+            handler: function(){
+              rs.dev.dbtable.formAddTableField();
+            }
+          },{
+            text: '删除字段',
+            iconCls: 'rsutiltree glyphicon glyphicon-trash',
+            handler: function(){
+              rs.dev.dbtable.formDeleteTableField();
+            }
+          },{
+            text: '拖拽模式开关',
+            iconCls: 'rsutiltree glyphicon glyphicon-lock',
+            handler: function(){
+              rs.dev.dbtable.formEnableDnd();
+            }
+          }
+        ],
+        onLoadSuccess: function(){
+          $(this).datagrid('enableDnd');
+          var rows = $(this).datagrid('getData').rows;
+          $.each(rows, function(index, row){
+            row.colName = row.colName.toUpperCase();
+          })
+        },
+        onBeforeDrag: function() {
+          return false;
+        },
+        onEndEdit: function(index, row) {
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colType'
+          });
+          if (editor && editor.target) {
+            row.colTypeText = $(editor.target).combobox('getText');
+          }
+        },
+        onBeginEdit: function(index){
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colName'
+          });
+
+          $(editor.target).textbox({
+            onChange: function(newValue){
+              $(this).textbox('setValue', newValue.toUpperCase());
+            }
+          })
+        }">
+        <thead>
+          <tr>
+            <th data-options="field:'ck',checkbox:true"></th>
+            <th data-options="field:'colName',width:100,editor:'textbox'">字段名称</th>
+            <th data-options="field:'colMark',width:100,editor:'textbox'">字段备注</th>
+            <th data-options="field:'colLen',width:80,align:'right',editor:'numberbox'">字段长度</th>
+            <th data-options="field:'colDecpoint',width:80,align:'right',editor:'numberbox'">小数点</th>
+            <th data-options="field:'colDefval',width:100,editor:'textbox'">默认值</th>
+            <th data-options="field:'colType',width:100,
+              formatter: function(value,row) {
+                return row.colTypeText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                editable: false,
+                panelHeight: 'auto',
+                valueField:'colType',
+                textField:'col_type_text',
+                data: [{
+                  colType: 'string',
+                  col_type_text: 'String'
+                },{
+                  colType: 'int',
+                  col_type_text: 'Integer'
+                },{
+                  colType: 'double',
+                  col_type_text: 'Double'
+                },{
+                  colType: 'date',
+                  col_type_text: 'Date'
+                },{
+                  colType: 'datetime',
+                  col_type_text: 'Datetime'
+                },{
+                  colType: 'decimal',
+                  col_type_text: 'Decimal'
+                },{
+                  colType: 'text',
+                  col_type_text: 'Text'
+                },{
+                  colType: 'blob',
+                  col_type_text: 'Blob'
+                }]
+              }
+            }">字段类型</th>
+            <th data-options="field:'colIspk',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">主键</th>
+            <th data-options="field:'colIsnull',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">允许空值</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+    <div title="索引" style="padding:10px">
+      <table id="dgFormDetailIndex" class="easyui-datagrid" style="width:auto;height:300px;" data-options="singleSelect: false, toolbar: [
+          {
+            text: '添加索引',
+            iconCls: 'rsutiltree glyphicon glyphicon-plus',
+            handler: function(){
+              rs.dev.dbtable.formAddTableIndex();
+            }
+          },{
+            text: '删除索引',
+            iconCls: 'rsutiltree glyphicon glyphicon-trash',
+            handler: function(){
+              rs.dev.dbtable.formDeleteTableIndex();
+            }
+          }
+        ],
+        onEndEdit: function(index, row) {
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colName'
+          });
+          if (editor && editor.target) {
+            row.colNameText = $(editor.target).combobox('getText');
+          }
+        }">
+        <thead>
+          <tr>
+            <th data-options="field:'ck',checkbox:true"></th>
+            <th data-options="field:'indexSeq',width:40">序号</th>
+            <th data-options="field:'indexName',width:100,editor:'textbox'">索引名称</th>
+            <th data-options="field:'colName',width:200,
+              formatter: function(value,row) {
+                return row.colNameText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField: 'value',
+                  textField: 'text',
+                  multiple: true,
+                  panelHeight: 'auto',
+                  data: [],
+                  onShowPanel: function() {
+                    $(this).combobox('loadData', rs.dev.dbtable.formPageIndexOptions);
+                  }
+                }
+              }
+            ">索引栏位</th>
+            <th data-options="field:'indexType',width:100,
+              editor:{
+                type:'combobox',
+                options:{
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField:'value',
+                  textField:'text',
+                  data: [{
+                    value: 'normal',
+                    text: 'normal'
+                  },{
+                    value: 'unique',
+                    text: 'unique'
+                  }]
+                }
+              }
+            ">索引类型</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="dlgSyncDatabase" class="easyui-dialog" style="width:426px;height:183px;padding:10px 20px" closed="true" data-options="modal:true, buttons:[{
+  text: '确定',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.dbtable.syncDatabase(this);
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgSyncDatabase').dialog('close');
+  } 
+}]">
+  <div>
+    <div>
+      <label>
+        <input type="radio" name="forceDrop" value="N" checked="">普通同步(保留表数据)</label>
+    </div>
+    <div>
+      <label>
+        <input type="radio" name="forceDrop" value="Y">强制同步(删除表,重新生成)</label>
+    </div>
+  </div>
+</div>
+
+<div id="dlgDeleteForm" class="easyui-dialog" style="width:426px;height:183px;padding:10px 20px" closed="true" data-options="modal:true, buttons: [
+{
+  text: '确定',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.dbtable.deleteForm(this);
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgDeleteForm').dialog('close');
+  } 
+}]">
+  <div>
+    <div>
+      <label>
+        <input type="radio" name="forceDropDelete" value="N" checked="">仅删除表单（保留数据库物理表）</label>
+    </div>
+    <div>
+      <label>
+        <input type="radio" name="forceDropDelete" value="Y">删除表单和数据库物理表</label>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script type="text/javascript">
+rs.dev.dbtable = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var tabsIdForm = 'tabsDbTable';
+  var urlForm = '/cg/form';
+  var methodForm;
+  var dgIdForm = 'dgDbTable';
+  var fmIdForm = 'formDbTable';
+  var dlgIdForm = 'dlgDbTable';
+  var dlgSyncDatabase = 'dlgSyncDatabase';
+  var dgFormDetailDbId = 'dgFormDetailDb'; // 数据库属性Tab
+  var dgFormDetailIndexId = 'dgFormDetailIndex'; // 索引Tab
+  var formPageViewMode;
+  var formFlagEnableDnd = false;
+  var searchFormId = 'searchForm';
+  var dlgIdDeleteForm = 'dlgDeleteForm';
+  initdbtablePage();
+
+  function initTabsInFormPage() {
+    rs.util.tabsSelectByIndex(tabsIdForm, 0);
+  }
+
+  function initdbtablePage() {
+    rs.util.mapTabTitleDialogId([dlgIdForm, dlgSyncDatabase, dlgIdDeleteForm]);
+    rs.util.datagridAutoSelectFirstRow(dgIdForm);
+
+    $('#' + tabsIdForm).tabs({
+      onSelect: function(title, index) {
+        switch (index) {
+          case 0:
+            // 数据库属性Tab
+            rs.util.datagridBeginEditAll(dgFormDetailDbId);
+            rs.util.datagridEndEditByCondition(dgFormDetailDbId, 'colName', 'id');
+            break;
+          case 1:
+            // 索引Tab
+            formPageInitIndexOptions();
+            rs.util.datagridBeginEditAll(dgFormDetailIndexId);
+            break;
+        }
+      },
+      onUnselect: function(title, index) {
+        switch (index) {
+          case 0:
+            rs.util.datagridAcceptChanges(dgFormDetailDbId);
+            break;
+          case 1:
+            rs.util.datagridAcceptChanges(dgFormDetailIndexId);
+            break;
+        }
+      }
+    });
+  }
+
+  function formPageInitIndexOptions() {
+    var list = rs.util.datagridGetColumnValueList(dgFormDetailDbId, 'colName');
+    rs.dev.dbtable.formPageIndexOptions = [];
+    $.each(list, function(index, value) {
+      rs.dev.dbtable.formPageIndexOptions.push({
+        value: value,
+        text: value
+      });
+    });
+  }
+
+  function addForm() {
+    rs.http.get({
+      url: '/cg/form/basecolumns',
+      success: function(response) {
+        formPageViewMode = rs.constant.VIEWMODE_ADD;
+        $('#inputFormTableName').textbox('readonly', false);
+        $('#' + dlgIdForm).dialog('open').dialog('setTitle', '新增表单');
+        initTabsInFormPage();
+        $('#' + fmIdForm).form('reset');
+        $('#' + dgFormDetailDbId).datagrid({
+          data: response.rows
+        });
+        rs.util.datagridBeginEditAll(dgFormDetailDbId);
+        rs.util.datagridEndEditByCondition(dgFormDetailDbId, 'colName', 'id');
+        $('#' + dgFormDetailIndexId).datagrid({
+          data: []
+        });
+      }
+    });
+  }
+
+  function editForm(index) {
+    if (index !== undefined) {
+      $('#' + dgIdForm).datagrid('selectRow', index)
+    }
+    var selectedRow = rs.util.datagridGetSelected(dgIdForm);
+    if (selectedRow) {
+      urlForm = '/admin/db/table/' + selectedRow.id;
+      rs.http.get({
+        url: urlForm,
+        success: function(data) {
+          formPageViewMode = rs.constant.VIEWMODE_EDIT;
+          $('#inputFormTableName').textbox('readonly');
+          $('#' + dlgIdForm).dialog('open').dialog('setTitle', '修改表单');
+          initTabsInFormPage();
+          $('#' + fmIdForm).form('load', data);
+
+          // 数据库属性Tab
+          $('#' + dgFormDetailDbId).datagrid({
+            data: data.columns
+          });
+          rs.util.datagridBeginEditAll(dgFormDetailDbId);
+          rs.util.datagridEndEditByCondition(dgFormDetailDbId, 'colName', 'id');
+          // 索引Tab
+          rs.util.datagridSetData(dgFormDetailIndexId, data.indexs || []);
+        }
+      });
+    }else{
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function saveForm(button) {
+    if ($('#' + fmIdForm).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdForm) || {};
+
+      $('#' + dgFormDetailDbId).datagrid('acceptChanges');
+      formData.columns = rs.util.datagridGetData(dgFormDetailDbId);
+      var iCount = 1;
+      $.each(formData.columns, function(index, column){
+        column.colSeq = iCount;
+        iCount++;
+      });
+
+      if (!validateFormColumn(formData.columns)) {
+        rs.util.datagridBeginEditAll(dgFormDetailDbId);
+        rs.util.datagridEndEditByCondition(dgFormDetailDbId, 'colName', 'id');
+        $(button).linkbutton('enable');
+        return;
+      }
+
+      $('#' + dgFormDetailIndexId).datagrid('acceptChanges');
+      formData.indexs = rs.util.datagridGetData(dgFormDetailIndexId);
+      if (!validateFormIndex(formData.indexs)) {
+        rs.util.datagridBeginEditAll(dgFormDetailIndexId);
+        $(button).linkbutton('enable');
+        return;
+      }
+
+      var msg;
+      if (formPageViewMode === rs.constant.VIEWMODE_ADD) {
+        methodForm = 'POST';
+        urlForm = '/admin/db/table';
+        msg = '创建成功';
+      } else if (formPageViewMode === rs.constant.VIEWMODE_EDIT) {
+        methodForm = 'PUT';
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlForm,
+        method: methodForm,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo(msg);
+            $('#' + dlgIdForm).dialog('close');
+            $('#' + dgIdForm).datagrid('reload');
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function validateFormColumn(columns) {
+    for (var i = 0, len = columns.length; i < len; ++i) {
+      var column = columns[i];
+      if (!column.colName) {
+        rs.util.messageError('字段名称不能为空');
+        return false;
+      }
+      if (!column.colMark) {
+        rs.util.messageError('字段备注不能为空');
+        return false;
+      }
+    };
+    return true;
+  }
+
+  function validateFormIndex(indexs) {
+    for (var i = 0, len = indexs.length; i < len; ++i) {
+      var index = indexs[i];
+      if (!index.indexName) {
+        rs.util.messageError('索引名称不能为空');
+        return false;
+      }
+      if (!index.colName) {
+        rs.util.messageError('索引栏位不能为空');
+        return false;
+      }
+    };
+    return true;
+  }
+
+  function promptDeleteForm(index) {
+    if (index !== undefined) {
+      $('#' + dgIdForm).datagrid('selectRow', index)
+    }
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      $('input:radio[name="forceDropDelete"][value="N"]').prop('checked', true);
+      $('#' + dlgIdDeleteForm).dialog('open').dialog('setTitle', '删除表单[' + row.tabledescp + ']');
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function deleteForm(button) {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      $(button).linkbutton('disable');
+      methodForm = 'DELETE';
+      urlForm = '/admin/db/table/'+ row.id
+      var forceDrop = $('input[name=forceDropDelete]:checked').val() === 'Y';
+      rs.http.ajaxJson({
+        url: urlForm,
+        method: methodForm,
+        data: {
+          version: row.version,
+          forceDrop: forceDrop
+        },
+        success: function(result) {
+          $('#' + dlgIdDeleteForm).dialog('close');
+          rs.util.messageInfo('删除成功');
+          $('#' + dgIdForm).datagrid('reload');
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });;
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function promptSyncDatabase(index) {
+    if (index !== undefined) {
+      $('#' + dgIdForm).datagrid('selectRow', index)
+    }
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      if(row.isdbsyn === "Y"){
+        rs.util.messageInfo("数据表已经同步，不允许同步！");  
+      }else{
+        $('input:radio[name="forceDrop"][value="N"]').prop('checked', true);
+        $('#' + dlgSyncDatabase).dialog('open').dialog('setTitle', '同步数据库[' + row.tabledescp + ']');
+      }
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_SYNC);
+    }
+  }
+
+  function syncDatabase(button) {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      $(button).linkbutton('disable');
+      urlForm = '/admin/db/table/'+ row.id + '/sync';
+      var forceDrop = $('input[name=forceDrop]:checked').val() === 'Y';
+      rs.http.ajaxJson({
+        url: urlForm,
+        method: 'PUT',
+        data: {
+          // tableId: row.id,
+          version: row.version,
+          forceDrop: forceDrop
+        },
+        success: function(data) {
+          $('#' + dlgSyncDatabase).dialog('close');
+          rs.util.messageInfo('同步成功');
+          rs.util.datagridReload(dgIdForm);
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });;
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_SYNC);
+    }
+  }
+
+  function endEditing() {
+    return true;
+  }
+
+  function formAddTableField() {
+    if (endEditing()) {
+      $('#' + dgFormDetailDbId).datagrid('appendRow', {
+        // 设置默认值
+        colName: '',
+        colMark: '',
+        colLen: 32,
+        colDecpoint: 0,
+        colDefval: '',
+        colType: 'string',
+        colIspk: 'N',
+        colIsnull: 'Y',
+        isFormdisp: 'Y',
+        isGriddisp: 'Y',
+        inputType: 'text',
+        inputLen: 120,
+        isSearch: 'N',
+        searchType: 'normal',
+        extjson: ''
+      });
+      var datagridEditIndex = $('#' + dgFormDetailDbId).datagrid('getRows').length - 1;
+      $('#' + dgFormDetailDbId).datagrid('beginEdit', datagridEditIndex);
+    }
+  }
+
+  function formDeleteTableField() {
+    rs.util.datagridDeleteSelections(dgFormDetailDbId);
+  }
+
+  function formEnableDnd() {
+    if (!formFlagEnableDnd) {
+      $('#' + dgFormDetailDbId).datagrid({
+        onBeforeDrag: function() {
+          return true;
+        }
+      });
+      $('#' + dgFormDetailDbId).datagrid('acceptChanges');
+      formFlagEnableDnd = true;
+    } else {
+      $('#' + dgFormDetailDbId).datagrid({
+        onBeforeDrag: function() {
+          return false;
+        }
+      });
+      rs.util.datagridBeginEditAll(dgFormDetailDbId);
+      rs.util.datagridEndEditByCondition(dgFormDetailDbId, 'colName', 'id');
+      formFlagEnableDnd = false;
+    }
+  }
+
+  function formAddTableIndex() {
+    if (endEditing()) {
+      $('#' + dgFormDetailIndexId).datagrid('appendRow', {
+        // 设置默认值
+        indexSeq: rs.util.datagridGetColumnMaxValue(dgFormDetailIndexId, 'indexSeq') + 1,
+        indexName: '',
+        colName: '',
+        indexType: 'normal'
+      });
+      var datagridEditIndex = $('#' + dgFormDetailIndexId).datagrid('getRows').length - 1;
+      $('#' + dgFormDetailIndexId).datagrid('beginEdit', datagridEditIndex);
+      // get the colName editor and change the combobox options
+      var ed = $('#' + dgFormDetailIndexId).datagrid('getEditor', {
+        index: datagridEditIndex,
+        　field: 'colName'
+      });
+      $(ed.target).combobox({
+        textField: 'text',
+        valueField: 'value',
+        data: rs.dev.dbtable.formPageIndexOptions
+      });
+    }
+  }
+
+  function formDeleteTableIndex() {
+    rs.util.datagridDeleteSelections(dgFormDetailIndexId);
+  }
+
+  function queryForm() {
+    $('#' + dgIdForm).datagrid('load');
+  }
+
+  return {
+    addForm: addForm,
+    editForm: editForm,
+    saveForm: saveForm,
+    promptDeleteForm: promptDeleteForm,
+    deleteForm: deleteForm,
+    formAddTableField: formAddTableField,
+    formDeleteTableField: formDeleteTableField,
+    formEnableDnd: formEnableDnd,
+    formAddTableIndex: formAddTableIndex,
+    formDeleteTableIndex: formDeleteTableIndex,
+    promptSyncDatabase: promptSyncDatabase,
+    syncDatabase: syncDatabase,
+    formPageIndexOptions: []
+  };
+
+})(jQuery));
+</script>

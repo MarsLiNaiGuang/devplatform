@@ -1,0 +1,29 @@
+body {
+  background-image: url(../images/login/bg01.png);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-color: #1362ad!important;
+  font-family: '微软雅黑';
+}
+
+.hidden {
+  display: none;
+}
+
+#btnSubmit {
+  border-radius: 3px;
+  background: #55ACEE;
+  font-family: 'microsoft yahei';
+}
+
+.form-item input {
+  border-radius: 2px;
+  transition: border-color 0.4s;
+  color: #666666;
+}
+
+.form-item input:focus {
+  border-color: red !important;
+  background: #fafafa !important;
+}

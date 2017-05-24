@@ -1,0 +1,423 @@
+<#assign base=request.contextPath />
+<div id="fileAuthLayout" class="easyui-layout" fit="true" title="">
+  <!-- 文件管理面板 -->
+  <div class="easyui-panel" data-options="region:'center'" style="padding: 0;">
+    <table id="dgAuth" class="easyui-treegrid" url="${base}/fs/folder/listall" method="GET" fitColumns="true" singleSelect="true" checkOnSelect="false" rownumbers="true" collapse="true" fit="true" data-options="loadMsg:'加载中...',idField:'id', treeField:'name',loadFilter: function(data){
+          if(data && data.total > 0){
+            $.each(data.rows,function(index,item){
+              item.state = 'open';
+              if(item.type === 'A'){
+                item.iconCls = 'rsutiltree glyphicon glyphicon-folder-open folder';
+              }
+              if(item.folderid != null){
+                item._parentId = item.folderid;
+              }
+            })
+        return data;
+          }
+        }">
+      <thead>
+        <tr>
+          <th field="name" width="400" halign="center">目录</th>
+          <th field="categoryid" width="120" align="center" halign="center" data-options="formatter:function(value,data){
+              switch(data.categoryid){
+                case 'A':{
+                  return '重要';
+                };break;
+                case 'B':{
+                  return '次要';
+                }break;
+                case 'C':{
+                  return '一般';
+                };break;
+                default:{
+                  return '--';
+                }
+              }
+            }">重要性</th>
+          <th field="remark" width="200" align="center" halign="center">备注</th>
+          <th field="verno" width="200" align="center" halign="center">版本</th>
+          <th field="type" width="100" align="center" halign="center" data-options="formatter:function(value,data){
+              if(data.type === 'A'){
+                return '文件夹'
+              }else{
+                return '文件'
+              }
+            }">类型</th>
+          <!-- <th field="auth" width="80" align="center" halign="center">权限值</th> -->
+          <th field="opt" width="240" halign="center" align="center" data-options="formatter:function(){
+              return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.fileAuth.expandAuthPanel()\'>打开权限列表</a>]';
+            }" style="text-align:center;">操作</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+  <!-- 权限列表面板 -->
+  <div class="easyui-panel" data-options="region:'east', collapsed:true,split:true" id="panelFSAuth" title="权限列表" style="width: 300px;">
+    <table id="dgFsAuth"></table>
+    <!-- 权限面板按钮组 -->
+    <div id="fsAuthToolbar">
+      <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="rs.dev.fileAuth.addAuth()">添加</a>
+      <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="rs.dev.fileAuth.editAuth()">编辑</a>
+      <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="rs.dev.fileAuth.deleteAuth()">删除</a>
+    </div>
+  </div>
+</div>
+<!-- 权限新增/编辑对话框 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="fsAuthDlg">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hide="true">&times;</span></button>
+        <h4 class="modal-title">新增权限</h4>
+      </div>
+      <div class="modal-body" style="height: 210px;">
+        <div>
+          <button type="button" class="btn btn-default btn-xs" onclick="rs.dev.fileAuth.reloadGroupList()" style="float: right">刷新用户组</a>
+        </div>
+        <form id="fsAuthObj">
+          <div class="fitem">
+            <label style="width: 140px;">选择权限所属对象类型</label>
+            <select id="objecttype" class="easyui-combobox" name="objecttype" style="width:200px;" data-options="required:true,missingMessage:'权限所属的对象类型不能为空',onSelect:function(data){
+              var url;
+                if(data.value ==='U'){
+                  url = '/admin/user/list';
+                }else if(data.value === 'R'){
+                  url = '/admin/role/list';
+                }else if(data.value === 'G'){
+                  url = '/admin/group/list';
+                }
+                rs.http.get({
+                  url:url
+                }).done(function(result){
+                  $('#objectid').combobox({
+                    data:result.rows,
+                    valueField:'id',
+                    textField:'name',
+                    required:true,
+                    missingMessage:'权限所属对象不能为空',
+                  })
+                });
+              }">
+              <option value="G">用户组</option>
+              <option value="U">用户</option>
+              <option value="R">角色</option>
+            </select>
+          </div>
+          <div class="fitem">
+            <label style="width: 140px;">选择权限所属对象</label>
+            <input id="objectid" name="objectid">
+          </div>
+          <label>操作权限：</label>
+        </form>
+        <table id="fsAuthList" class="easyui-datagrid" rownumbers="true" fitColumns="true" fit="true" striped="true">
+          <thead>
+            <tr>
+              <th data-options="field:'ck',checkbox:true"></th>
+              <th field="name" align="center" width="120">权限名称</th>
+              <th field="desc" align="center" width="216">权限描述</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="modal-footer" id="fsDlgButtonsAuth">
+        <button class="btn btn-default" type="button" data-dismiss="modal">取消</button>
+        <button class="btn btn-primary" type="button" onclick="rs.dev.fileAuth.saveAuth(this)">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+rs.dev.fileAuth = jQuery.extend({}, rs.dev.default, (function($) {
+  var fsVideMode, msg;
+  var temp;
+  var dgData = [{
+    "id": "0",
+    "name": "可写",
+    "desc": "文档写入权限",
+    "checked": false,
+    "flag": "w"
+  }, {
+    "id": "1",
+    "name": "下载",
+    "desc": "文档下载权限",
+    "checked": false,
+    "flag": "d"
+  }, {
+    "id": "2",
+    "name": "可读",
+    "desc": "文档读取权限",
+    "checked": false,
+    "flag": "r"
+  }];
+  var columns = [{
+    field: 'checked',
+    title: '选中',
+    checkbox: true
+  }, {
+    field: 'name',
+    title: '权限名称',
+    align: 'center',
+    fixed: true,
+    width: 120
+  }, {
+    field: 'desc',
+    title: '权限描述',
+    align: 'center',
+    fixed: true,
+    width: 216
+  }];
+
+  function reloadGroupList() {
+    rs.http.get({
+      url: '/admin/group/list'
+    }).done(function(result) {
+      $('#objectid').combobox({
+        data: result.rows,
+        valueField: 'id',
+        textField: 'name',
+        required: true,
+        missingMessage: '权限所属对象不能为空',
+      })
+      if (fsVideMode === rs.constant.VIEWMODE_EDIT) {
+        $('#objectid').combobox('setValue', temp.objectId);
+      }
+    })
+  }
+
+
+  //添加权限
+  function addAuth() {
+    $.each(dgData, function(index, item) {
+      item.checked = false;
+    })
+    fsUrl = '/fs/auth';
+    fsMethod = 'POST';
+    fsVideMode = rs.constant.VIEWMODE_ADD;
+    msg = '权限添加成功';
+    $('#fsAuthDlg form').form('reset');
+    $('#fsAuthDlg').find('.modal-title').html('新增权限');
+    var row = $('#dgAuth').treegrid('getSelected');
+    $('#fsAuthList').datagrid('loadData', dgData);
+    $('#fsAuthDlg').modal('show');
+    $('#fsAuthDlg').on('shown.bs.modal', function(e) {
+      $('#fsAuthList').datagrid('resize');
+    })
+  }
+
+  //编辑权限
+  function editAuth() {
+    var row = $('#dgFsAuth').datagrid('getSelected');
+    if (row !== null) {
+      temp = row;
+      var data = formatEditAuth(row.content);
+      $('#objecttype').combobox('setValue', row.objecttype);
+      setTimeout(function() {
+        $('#objectid').combobox('setValue', row.objectId);
+      }, 50);
+      $('#fsAuthList').datagrid({
+        data: data,
+        onLoadSuccess: function() {
+          var that = this;
+          $.each(data, function(index, item) {
+            if (item.checked) {
+              $(that).datagrid('selectRow', index);
+            }
+          })
+        }
+      });
+      $('#fsAuthDlg').find('.modal-title').html('编辑权限');
+      $('#fsAuthDlg').modal('show');
+      $('#fsAuthDlg').on('shown.bs.modal', function(e) {
+      $('#fsAuthList').datagrid('resize');
+    })
+      fsUrl = '/fs/auth/' + row.id;
+      msg = '权限编辑成功';
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_EDIT);
+    }
+    fsMethod = 'PUT';
+    fsVideMode = rs.constant.VIEWMODE_EDIT;
+  }
+
+  //格式化auth编辑
+  function formatEditAuth(auth) {
+    var authType = auth.toString(2).split('');
+    if (authType.length < 3) {
+      for (var i = 0; i <= 3 - authType.length; i++) {
+        authType.unshift('0');
+      }
+    }
+    $.each(authType, function(index, item) {
+      if (item == 1) {
+        dgData[index].checked = true;
+        dgData[index].selected = true;
+      } else {
+        dgData[index].checked = false;
+        dgData[index].selected = false;
+      }
+    })
+    return dgData;
+  }
+
+  //保存权限
+  function saveAuth(button) {
+    if ($('#fsAuthObj').form('validate')) {
+      var auth = [0, 0, 0];
+      var authType = 'wdr';
+      var row = $('#dgAuth').treegrid('getSelected');
+      var rows = $('#fsAuthList').datagrid('getSelections');
+      $.each(rows, function(index, item) {
+        if (authType.indexOf(item.flag) != -1) {
+          auth[item.id] = 1;
+        }
+      });
+      var formData = rs.util.formGetData('fsAuthObj');
+      formData.menutype = row.type;
+      formData.menuid = row.id;
+      if (auth[0] == 1) {
+        auth[2] = 1;
+      }
+      formData.content = parseInt(auth.join(''), 2);
+      rs.http.ajaxJson({
+          url: fsUrl,
+          method: fsMethod,
+          data: formData
+        }).done(function() {
+          rs.util.messageInfo(msg);
+          $('#fsAuthDlg').modal('hide');
+          $('#dgAuth').treegrid('reload')
+          $('#fsAuthList').datagrid('unselectAll');
+          if ($('#dgFS${FOLDER_ID!}').length) {
+            $('#dgFS${FOLDER_ID!}').treegrid('reload');
+          }
+          renderAuthData(row);
+        })
+        /*.always(function() {
+                  $(button).linkbutton('enable');
+                });*/
+    }
+  }
+
+  function renderAuthData(row) {
+    row = row || $('#dgAuth').treegrid('getSelected');
+    return rs.http.get({
+      url: '/fs/auth/' + row.type + '/' + row.id
+    }).done(function(result) {
+      $('#dgFsAuth').datagrid({
+        data: result.rows,
+        columns: [
+          [{
+            field: 'ck',
+            checkbox: true
+          }, {
+            field: 'content',
+            halign: 'center',
+            align: 'center',
+            title: '权限值',
+            width: 60
+          }, {
+            field: 'objectname',
+            halign: 'center',
+            align: 'center',
+            title: '所属对象名称',
+            width: 100
+          }, {
+            field: 'objecttype',
+            halign: 'center',
+            align: 'center',
+            title: '对象类型',
+            width: 100,
+            formatter: function(value, data, index) {
+              if (data.objecttype === 'U') {
+                return '用户';
+              } else if (data.objecttype === 'G') {
+                return '用户组';
+              } else if (data.objecttype === 'R') {
+                return '角色';
+              } else {
+                return '';
+              }
+            }
+          }]
+        ],
+        fit: true,
+        toolbar: '#fsAuthToolbar',
+        fitColumns: true,
+        singleSelect: true,
+        field: 'name',
+        rownumbers: true,
+        singleSelect: false,
+        onClickRow: function(index) {
+          $('#dgFsAuth').datagrid('unselectAll');
+          $('#dgFsAuth').datagrid('selectRow', index);
+        }
+      });
+    });
+  }
+
+  //删除
+  function deleteAuth() {
+    var rows = $('#dgFsAuth').datagrid('getSelections');
+    var row = $('#dgAuth').tree('getSelected');
+    var msg;
+    if (rows.length === 0) {
+      rs.util.messageWarning(rs.constant.MESSAGE_DELETE);
+    } else {
+      var ids = [];
+      $.each(rows, function(indexm, item) {
+        ids.push(item.id);
+      })
+      fsUrl = '/fs/auth';
+      msg = '确认删除该权限？';
+      fsMethod = 'DELETE';
+      fsVideMode = rs.constant.VIEWMODE_DELETE;
+      rs.util.messageConfirm(msg, '提醒', function() {
+        rs.http.ajaxJson({
+          url: fsUrl,
+          method: fsMethod,
+          data: {
+            ids: ids
+          }
+        }).done(function() {
+          rs.util.messageInfo('删除成功！');
+          $('#dgAuth').treegrid('reload');
+          $('#dgAuth').treegrid('unselectAll');
+          if ($('#dgFS${FOLDER_ID!}').length) {
+            $('#dgFS${FOLDER_ID!}').treegrid('reload');
+          }
+          renderAuthData(temp).done(function() {
+            $('#dgAuth').treegrid('select', temp.id);
+          })
+        });
+      });
+    }
+  }
+
+  //展开权限控制面板
+  function expandAuthPanel() {
+    setTimeout(function() {
+      var row = $('#dgAuth').treegrid('getSelected');
+      if (row == null) {
+        rs.util.messageWarning(rs.constant.MESSAGE_EDIT);
+      } else {
+        temp = row;
+        renderAuthData(row).done(function() {
+          $('#fileAuthLayout').layout('expand', 'east');
+          $('#panelFSAuth').panel('setTitle', '权限列表[' + row.name + ']');
+        });
+      }
+    }, 1)
+  }
+
+
+  return {
+    expandAuthPanel: expandAuthPanel,
+    addAuth: addAuth,
+    editAuth: editAuth,
+    saveAuth: saveAuth,
+    deleteAuth: deleteAuth,
+    reloadGroupList: reloadGroupList
+  }
+})(jQuery));
+</script>

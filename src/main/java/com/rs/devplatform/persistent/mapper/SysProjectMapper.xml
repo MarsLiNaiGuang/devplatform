@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.rs.devplatform.persistent.mapper.SysProjectMapper">
+
+	<select id="getAssignedUser4Pj" resultType="com.rs.framework.common.entity.persistent.SysUsers">
+select u.USERS_ID as id, u.USERS_NAME as name, PJ2U_USER_TYPE as userType
+from sys_pj2u pu, sys_users u
+where pu.PJ2U_USER_ID = u.USERS_ID
+and pu.PJ2U_PJ_ID=#{pjId}
+<if test="userType != null">
+and pu.PJ2U_USER_TYPE=#{userType}
+</if>
+<if test="filteredUserId != null">
+and pu.PJ2U_USER_ID!=#{filteredUserId}
+</if>
+	</select>
+	
+	
+</mapper>

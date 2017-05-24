@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Roadshare Dev Plateform</h1>
+<p>
+Maven Project:<br>
+修改仓库镜像：<br>
+maven安装目录apache-maven-3.3.9\conf\settings.xml<br>
+&lt;mirrors>标签下添加：<br>
+&lt;mirror><br>
+		&lt;id>rsmaven&lt;/id><br>
+		&lt;name>rs maven&lt;/name><br>
+		&lt;url>http://192.168.10.68:8081/nexus/content/groups/public/&lt;/url><br>
+		&lt;mirrorOf>×&lt;/mirrorOf>        <br>
+	&lt;/mirror><br>
+</p>
+<p>
+<h1>主要增强对单表CRUD快速开发</h1>
+</p>
+<p>
+<h2>***初阶***</h2>
+<h3>第一步：新建表tbl_test(id,name)<br></h3>
+<h3>第二步：新建实体类:<br></h3>
+<b>@TableName("tbl_test")</b>//增加该注解,实体类跟数据库表的映射关系<br>
+Test{<br>
+	@TableId<br>
+	int id;<br>
+	String name;<br>
+	get/set...<br>
+}<br>
+<h3>第三步：建service并引用如下代码,完成单表crud：<br></h3>
+@Autowired<br>
+RsGeneralMapper generalMapper;	<br>
+<br>
+<h4>C: 新增记录</h4>
+Test test = new Test();<br>
+test.setId(1);<br>
+test.setName("123");<br>
+generalMapper.insert(test);//完成insert<br>
+<br>
+<h4>R:查询list</h4>
+Test parm = new Test();<br>
+parm.setName("123");//只查name=123的记录<br>
+List&lt;Test> list = generalMapper.selectList(new RsEntityWrapper&lt;>(parm));//查询一个list<br>
+<br>
+<h4>查询主键记录</h4>
+Test testByPk = generalMapper.selectById("11", Test.class);//根据主键查询记录<br>
+<h4>U:更新记录</h4>
+testByPk.setName("abc");
+generalMapper.updateById(testByPk);//将所有字段都更新进去<br>
+testByPk.setName(null);//使用updateSelectiveById(),这个null不会更新进数据库，而用updateById()会把null更新到数据库<br>
+generalMapper.updateSelectiveById(testByPk);//null字段跳过不更新<br>
+<h4>D:删除记录</h4>
+generalMapper.deleteById("12345", Test.class)//根据主键删除）<br>
+<b>or</b><br>
+Test testDelete = new Test();<br>
+test.setId("12345");<br>
+generalMapper.deleteSelective(test);//根据实体条件删除匹配的记录<br>
+（更多方法，请查看generalMapper
+</p>
+<p>
+<h3>无需繁琐的*Mapper.xml, *Mapper.java,即可完成单表CRUD。</h3>
+<h4>注：如果复杂sql，仍然需要手动写*Mapper.java,*Mapper.xml</h4>
+</p>
+<br>
+<p>
+<h2>***高阶***</h2>
+<h3>主键生成策略<u>@TableId</u></h3>
+Test2{<br>
+<b>@TableId</b>(value = "<b>id_str</b>", <b>type = IdType.UUID)</b>//主键生成策略框架帮你生成32位UUID作为主键<br>
+private String id;<br>
+
+<h3>字段名含有下划线，或者想自定义属性名<u>@TableField</u></h3>
+	@TableField(value = "user_name")<br>
+	String userName;<br><br>
+	
+	get/set...<br>
+}<br>
+Test2 test2 = new Test2();<br>
+<div style="text-decoration:line-through ">test2.setId(1);//不需要设置id</div>
+test2.setName("1233");<br>
+generalMapper.insert(test2);//完成insert<br>
+<br>
+<h3>数据过滤和排序</h3>
+<p>
+<h4>简单过滤：</h4><br>
+Test2 entity = new Test2();<br>
+entity.setName("1234");<br>
+entity.setAge(10);<br>
+List<Test2> entityList = generalMapper.selectList(new RsEntityWrapper<>(entity));// select * from xxx where xxx_name=‘1234’ and xxx_age=10
+</p>
+<p>
+<h4>like, orderBy : </h4>
+RsEntityWrapper&lt;Test2> wrapper = new RsEntityWrapper&lt;>(new Test2());<br>
+wrapper.and("xxx_age>{0}", 18);//等价于SQL：<b>select * from xxx where xxx_age >18</b><br><br>
+wrapper.andNew("xxx_date>{0} and xx_date&lt;{1}", LocalDate.of(2017-2-2), LocalDate.of(2017,2,17));<br>
+//等价于SQL(接上面条件)：<b>select * from xxx where xxx_age >18 and (xxx_date>'2017-2-2' and xxx_date&lt;'2017-2-17')</b><br><br>
+wrapper.like("xxx_name", "123");//等价于SQL：<b>select * from xxx where ... and xxx_name like '%123%' </b><br><br>
+wrapper.orderBy("xxx_name", false);//等价于SQL：order by xxx_name desc<br>
+</p>
+<br>
+<h3>分页</h3>
+<h4>分页+排序</h4>
+Page page = rsGeneralMapper.selectByPageOrder(T&lt;? extends PageVO&gt; pageVO);<br>
+page.records是分页的记录<br>
+page.total是总记录条数<br>
+<br>
+<br>
+</p>
+<br>
+<b>注：</b>其他方法可查看generalMapper相关方法；<br>
+<b>注：</b>实体代码生成器(TODO)将采用驼峰式命名，将字段下划线替换为驼峰: user_id -> userId<br>
+<br>
+<h3>自定义Mapper分页</h3>
+在com.rs.devplatform.persistent.mapper包名下定义一个interface:<br>
+import com.baomidou.mybatisplus.plugins.Page;<br>
+<font color="red">or</font><br>
+import com.baomidou.mybatisplus.plugins.pagination.Pagination;<br>
+public interface SysRoles2UserMapper<br>
+<b>定义查询方法</b><br>
+@Select(" select users_id as id, users_name as name from sys_users ")<br>
+public List<SysUsers> testUserListWithPagination(Pagination page, Map whereCondition);<br>
+<ul>
+<li>
+<font color="red">*注：select * 不用 as的情况:</font>
+</li>
+<li>
+<font color="red">*注：如果实体属性是usersName,对应字段为users_name, 那么可以不用 as usersName, 自动映射到usersName</font>
+</li>
+</ul>
+<br>
+<b>调用方法：</b><br>
+@Autowired<br>
+SysRoles2UserMapper userMapper;<br>
+List<SysUsers> userList = userMapper.testUserListWithPagination(new Pagination(1, 5), new HashMap());<br>
+new Pagination(1,5):第一个参数是当前第几页，第二个参数是每页显示的记录条数<br>
+</p>
+<br>
+<br>
+<b>注：</b>其他方法可查看generalMapper相关方法；<br>
+<b>注：</b>实体代码生成器(TODO)将采用驼峰式命名，将字段下划线替换为驼峰: user_id -> userId<br>
+<br>
+
+
+</body>
+</html>

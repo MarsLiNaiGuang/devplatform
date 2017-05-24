@@ -1,0 +1,449 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<table id="dgProject" class="easyui-datagrid" url="${base}/admin/project/list" method="POST" toolbar="#projectsToolbar" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" data-options="onBeforeLoad: 
+function (param) {
+    var searchParam = rs.util.getSearchParam('searchFormProject'); 
+    $.extend(param, searchParam);
+        }">
+  <thead>
+    <tr>
+      <th field="name" width="200" halign="center">项目名</th>
+      <th field="version" width="200" halign="center">版本</th>
+      <th field="whr" width="200" halign="center">维护人</th>
+      <th field="whsj" width="200" halign="center" data-options="formatter: rs.util.formatDateTime">维护时间</th>
+      <th field="opt" width="200" halign="center" data-options="formatter: 
+          function(val, row, index){
+              var str = '';
+              if (row.init !== 'Y') {
+                  str += '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.project.initProject('+index+')\'>初始化项目</a>]';
+              }
+              return str;
+          }
+      ">操作</th>
+    </tr>
+  </thead>
+</table>
+<div id="projectsToolbar">
+  <div class="rs-datagrid-toolbar">
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.add()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 新增</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.edit()">
+        <span class="rsutiltree glyphicon glyphicon-edit" aria-hidden="true"> 修改</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.delete()">
+        <span class="rsutiltree glyphicon glyphicon-trash" aria-hidden="true"> 删除</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.assignUsers()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 分配人员</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.query()">
+        <span class="rsutiltree glyphicon glyphicon-search" aria-hidden="true"> 查询</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.project.reset()">
+        <span class="rsutiltree glyphicon glyphicon-refresh" aria-hidden="true"> 重置</span>
+      </button>
+    </div>
+  </div>
+
+  <form id="searchFormProject" method="post" class="form-inline">
+    <div class="form-group" style="padding: 3px 0 1px 16px;">
+      <label>项目名：</label>
+      <input name="name" class="easyui-textbox">
+    </div>
+  </form>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgProject">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">新增</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmProject" method="post">
+          <div class="fitem" hidden="true">
+            <label>ID：</label>
+            <input name="id" class="easyui-textbox">
+          </div>
+          <div class="fitem">
+            <label>项目名：</label>
+            <input name="name" class="easyui-textbox" required="true">
+          </div>
+          <div class="fitem" hidden="true">
+            <label>版本：</label>
+            <input name="version" class="easyui-textbox">
+          </div>
+          <div class="fitem">
+            <label>数据库类型：</label>
+            <select class="easyui-combobox" editable="false" panelHeight="auto" name="dbType" required="true" style="width:100px;" data-options="onSelect: rs.dev.project.dbTypeChange">
+              <option value="1" selected="true">MySQL</option>
+              <option value="2">PostgreSQL</option>
+              <option value="3">Oracle</option>
+              <option value="4">SQLite</option>
+              <option value="5">SQL Server</option>
+              <option value="6">MariaDB</option>
+            </select>
+          </div>
+          <div class="fitem">
+            <label>数据库地址：</label>
+            <input name="dbUrl" class="easyui-textbox" required="true" prompt="host:port/database">
+          </div>
+          <div class="fitem">
+            <label>数据库用户名：</label>
+            <input name="dbUser" class="easyui-textbox" required="true">
+          </div>
+          <div class="fitem">
+            <label>数据库密码：</label>
+            <input name="dbPwd" class="easyui-textbox" required="true">
+          </div>
+          <div>
+            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" style="padding:5px 0px;width:310px;" onclick="rs.dev.project.testConnection()">
+              <span style="font-size:14px;">连接测试</span>
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button type="button" class="btn btn-primary" onclick="rs.dev.project.save(this)">保存</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgAssign">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">分配人员</h4>
+      </div>
+      <div class="modal-body" style="height: 500px">
+        <table id="dgAssignUsers" idField="id" class="easyui-datagrid" url="${base}/admin/user/list" method="POST" pagination="true" fit="true" rownumbers="true" fitColumns="true" singleSelect="false" checkbox="true">
+          <thead>
+            <tr>
+              <th field="name" width="150">用户名</th>
+              <th field="nkname" width="150">昵称</th>
+              <th field="email" width="200">电子邮箱</th>
+              <th field="userType" width="100" data-options="
+                  formatter:function(value,row){
+                      return row.text;
+                  },
+                  editor:{
+                      type: 'combobox',
+                      options:{
+                          textField: 'text',
+                          valueField: 'value',
+                          data: [{
+                              text: '项目经理',
+                              value: 'PM'
+                          },{
+                              text: '项目成员',
+                              value: 'TM'
+                          }]
+                      }
+                  }">项目人员类型</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button type="button" class="btn btn-primary" onclick="rs.dev.project.saveAssignUsers(this)">保存</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- JavaScript -->
+<script>
+rs.dev.project = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var urlProject;
+  var methodProject;
+  var dgIdProject = 'dgProject';
+  var fmIdProject = 'fmProject';
+  var dlgIdProject = 'dlgProject';
+
+  // 分配人员
+  var selectedProjectId;
+  var dialogAssignId = 'dlgAssign';
+  var dgAssignUsersId = 'dgAssignUsers';
+  var projectVideMode;
+
+  $('#'+dialogAssignId).on('shown.bs.modal', function (e) {
+    $('#'+dgAssignUsersId).datagrid('resize');
+  })
+
+  initProjectPage();
+
+  function initProjectPage() {
+    rs.util.mapTabTitleDialogId([dlgIdProject, dialogAssignId]);
+    rs.util.datagridAutoSelectFirstRow(dgIdProject);
+  }
+
+  function initProject(index){
+    $('#' + dgIdProject).datagrid('selectRow', index);
+    var row = $('#' + dgIdProject).datagrid('getSelected');
+    if(row && row.id) {
+      rs.http.postJson({
+        url: '/manager/project/' + row.id + '/init',
+        data: {
+          version: row.version || 1
+        },
+        success: function() {
+          rs.util.messageInfo('初始化项目成功');
+          $('#' + dgIdProject).datagrid('reload');
+        },
+        error: function(result) {
+          rs.util.messageError(result.errorMsg || '初始化项目失败');
+        }
+      });
+    }
+  }
+
+  function addProject() {
+    // $('#' + dlgIdProject).dialog('open').dialog('setTitle', '新增项目');
+    $('#'+dlgIdProject,rs.util.getSelectedTab()).modal('show');
+    $('h4', $('#'+dlgIdProject)).text('新增');
+    $('#' + fmIdProject).form('reset');
+    urlProject = '/admin/project';
+    methodProject = 'POST';
+    projectVideMode = rs.constant.VIEWMODE_ADD;
+  }
+
+  function testConnection() {
+    if($('#' + fmIdProject).form('validate')) {
+      var project = rs.util.formGetData(fmIdProject);
+      rs.http.postJson({
+        url: '/admin/project/testdb',
+        data: {
+          dbType: project.dbType,
+          dbUrl: project.dbUrl,
+          dbUser: project.dbUser,
+          dbPwd: project.dbPwd
+        },
+        success: function() {
+          rs.util.messageInfo('连接测试成功');
+        },
+        error: function(result) {
+          rs.util.messageError(result.errorMsg || '连接测试失败');
+        }
+      });
+    }
+  }
+
+  function editProject() {
+    var row = $('#' + dgIdProject).datagrid('getSelected');
+    if (row) {
+      rs.http.ajaxJson({
+        url: '/admin/project/' + row.id,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            // $('#' + dlgIdProject).dialog('open').dialog('setTitle', '修改项目');
+            $('#'+dlgIdProject,rs.util.getSelectedTab()).modal('show');
+            $('h4', $('#'+dlgIdProject)).text('修改项目');
+            var formData = {
+              id: result.id,
+              name: result.name,
+              version: result.version
+            };
+            if (result.resList && result.resList.length > 0) {
+              var db = result.resList[0];
+              formData.dbType = db.dbType;
+              formData.dbUrl = db.dbUrl;
+              formData.dbUser = db.dbUser;
+              formData.dbPwd = db.dbPwd;
+            }
+            $('#' + fmIdProject).form('load', formData);
+            urlProject = '/admin/project/' + row.id;
+            methodProject = 'PUT';
+            projectVideMode = rs.constant.VIEWMODE_EDIT;
+          }
+        }
+      });
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function saveProject(button) {
+    if ($('#' + fmIdProject).form('validate')) {
+      // $(button).linkbutton('disable');
+      $(button).attr('disabled',"true");
+      var formData = rs.util.formGetData(fmIdProject);
+      var data = {
+        id: formData.id,
+        name: formData.name,
+        version: formData.version,
+        db: {
+            dbType: formData.dbType,
+            dbUrl: formData.dbUrl,
+            dbUser: formData.dbUser,
+            dbPwd: formData.dbPwd
+        }
+      };
+      var msg;
+      if (projectVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功';
+      } else if (projectVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlProject,
+        method: methodProject,
+        data: data,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo(msg);
+            $('#'+dlgIdProject,rs.util.getSelectedTab()).modal('hide');
+            $('#' + dgIdProject).datagrid('reload'); // reload the user data
+          }
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled');
+      });
+    }
+  }
+
+  function deleteProject() {
+    var row = $('#' + dgIdProject).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm('确认删除此项目？','提醒',function(){
+        urlProject = '/admin/project/' + row.id;
+        methodProject = 'DELETE';
+        rs.http.ajaxJson({
+          url: urlProject,
+          method: methodProject,
+          data: {
+            id: row.id,
+            version: row.version
+          },
+          success: function(result) {
+            if (result.error) {
+              rs.util.messageError(result.error);
+            } else {
+              rs.util.messageInfo("删除成功");
+              $('#' + dgIdProject).datagrid('reload'); // reload the user data
+            }
+          }
+        });
+      });
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function assignUsers() {
+    var row = $('#' + dgIdProject).datagrid('getSelected');
+    if (row && row.id) {
+      selectedProjectId = row.id;
+      // $('#' + dialogAssignId).dialog('open').dialog('setTitle', '分配人员');
+      $('#'+dialogAssignId,rs.util.getSelectedTab()).modal('show');
+      $('#' + dgAssignUsersId).datagrid({
+        onLoadSuccess: function() {
+          $('#' + dgAssignUsersId).datagrid('clearSelections');
+          rs.http.get({
+            url: '/manager/project/' + selectedProjectId + '/users',
+            method: 'GET',
+            success: function(result) {
+              if (result.error) {
+                rs.util.messageError(result.error);
+              } else {
+                $.each(result.rows, function(index, row) {
+                  $('#' + dgAssignUsersId).datagrid('updateRow', {
+                    index: rs.util.datagridGetRowIndex(dgAssignUsersId, row.id),
+                    row: {
+                      userType: row.userType
+                    }
+                  });
+                  $('#' + dgAssignUsersId).datagrid('selectRecord', row.id);
+                });
+              }
+            }
+          });
+        },
+        onSelect: function(index, row) {
+          $(this).datagrid('beginEdit', index);
+          var ed = $(this).datagrid('getEditor', {
+              index: index,
+              field: 'userType'
+          });
+          $(ed.target).focus();
+        }
+      });
+      urlProject = '/admin/project/' + row.id;
+      methodProject = 'DELETE';
+    }
+  }
+
+  function saveAssignUsers(button) {
+    // $(button).linkbutton('disable');
+    $(button).attr('disabled',"true");
+    $('#' + dgAssignUsersId).datagrid('acceptChanges');
+    var selections = $('#' + dgAssignUsersId).datagrid('getSelections');
+    if (selections.length > 0) {
+      var users = [];
+      $.each(selections, function(index, user) {
+        users.push({
+          id: user.id,
+          userType: user.userType
+        });
+      });
+      rs.http.postJson({
+        url: '/manager/project/' + selectedProjectId + '/users',
+        data: {
+          users: users
+        },
+        success: function(result) {
+          if (result.error) {
+            rs.util.messageError(result.error);
+          } else {
+            $('#'+dialogAssignId,rs.util.getSelectedTab()).modal('hide');
+          }
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled');
+      });
+    } else {
+      $(button).removeAttr('disabled');
+    }
+  }
+
+  function dbTypeChange(record) {
+    var value = record.value;
+    if (value === "1") {
+    } else {
+    }
+  }
+
+  function queryProject(){
+    $('#'+dgIdProject).datagrid('reload');
+  }
+
+  function resetProject(){
+    $('#searchFormProject').form('clear');
+  }
+
+  return {
+    initProject: initProject,
+    add: addProject,
+    edit: editProject,
+    save: saveProject,
+    delete: deleteProject,
+    assignUsers: assignUsers,
+    saveAssignUsers: saveAssignUsers,
+    testConnection: testConnection,
+    dbTypeChange: dbTypeChange
+  };
+
+})(jQuery));
+</script>

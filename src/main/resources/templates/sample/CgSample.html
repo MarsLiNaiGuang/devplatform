@@ -1,0 +1,183 @@
+<#assign base=request.contextPath />
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base id="base" href="${base}">
+    <title>示例管理</title>
+    <link rel="stylesheet" href="${base}/lib/jquery-easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="${base}/lib/jquery-easyui/themes/icon.css">
+    <script src="${base}/lib/jquery-easyui/jquery.min.js"></script>
+    <script src="${base}/lib/jquery-easyui/jquery.easyui.min.js"></script>
+    <script src="${base}/js/rs-util.js?v=1"></script>
+    <!-- CSS -->
+    <style type="text/css">
+    #fm {
+        margin: 0;
+        padding: 10px 30px;
+    }
+    
+    .ftitle {
+        font-size: 14px;
+        font-weight: bold;
+        padding: 5px 0;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #ccc;
+    }
+    
+    .fitem {
+        margin-bottom: 5px;
+    }
+    
+    .fitem label {
+        display: inline-block;
+        width: 80px;
+    }
+    
+    .fitem input {
+        width: 160px;
+    }
+    </style>
+</head>
+<body>
+    <!-- DataGrid -->
+    <table id="dg" title="示例列表" class="easyui-datagrid" style="width:700px;height:250px" 
+    	url="${base}/sample/cgSample/list" 
+    	toolbar="#toolbar" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true">
+        <thead>
+            <tr>
+                <th field="name" width="auto">Username用户名</th>
+                <th field="nkname" width="auto">NickName昵称</th>
+                <th field="age" width="auto">年龄</th>
+            </tr>
+        </thead>
+    </table>
+    <div id="toolbar">
+        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="addCgSample()">新增</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="editCgSample()">修改</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="deleteCgSample()">删除</a>
+    </div>
+    <!-- Dialog -->
+    <div id="dlg" class="easyui-dialog" style="width:370px;height:300px;padding:10px 20px" closed="true" buttons="#dlg-buttons" data-options="modal:true">
+        <div class="ftitle">示例</div>
+        <form id="fm" method="post" novalidate>
+        	<div class="fitem" id="id">
+                <label>ID：</label>
+                <input name="id" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <label>Username用户名：</label>
+                <input name="name"" class="easyui-textbox" required="true">
+            </div>
+            <div class="fitem">
+                <label>NickName昵称：</label>
+                <input name="nkname"" class="easyui-textbox" required="true">
+            </div>
+            <div class="fitem">
+                <label>年龄：</label>
+                <input name="age"" class="easyui-textbox" >
+            </div>
+            	<input name="version" type="hidden">
+        </form>
+    </div>
+    <div id="dlg-buttons">
+        <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="saveCgSample()" style="width:90px">Save</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#'+dialogId).dialog('close')" style="width:90px">Cancel</a>
+    </div>
+    <!-- JavaScript -->
+    <script type="text/javascript">
+	var url="/sample/cgSample/list" 
+    var requestMethod;
+    var datagridId = 'dg';
+    var formId = 'fm';
+    var dialogId = 'dlg';
+    $('#id').hide();
+    
+    var popup_url;
+
+    function addCgSample() {
+        $('#' + dialogId).dialog('open').dialog('setTitle', '新增示例');
+        $('#' + formId).form('clear');
+        requestMethod = 'POST';
+        popup_url = "/sample/cgSample";
+    }
+
+    function editCgSample() {
+        var row = $('#' + datagridId).datagrid('getSelected');
+        if (row) {
+            $('#' + dialogId).dialog('open').dialog('setTitle', '修改示例');
+            $('#' + formId).form('load', row);
+            requestMethod = 'PUT';
+            popup_url = "/sample/cgSample/"+row.id;
+        }
+    }
+
+    function saveCgSample() {
+        if ($('#' + datagridId).form('validate')) {
+            var formData = rs.util.formGetData(formId);
+            rs.http.ajaxJson({
+            	url : popup_url,
+                method: requestMethod,
+                data: formData,
+                success: function(result) {
+                    if (result.errorMsg) {
+                        $.messager.show({
+                            title: 'Error',
+                            msg: result.errorMsg
+                        });
+                    } else {
+                        $('#' + dialogId).dialog('close'); // close the dialog
+                        $('#' + datagridId).datagrid('reload'); // reload the user data
+                    }
+                },
+                error:function(error){
+                	var errorStatus = error.status;
+                	if(302==errorStatus){
+                		alert("Duplicate record existed");
+                	}else if(400==errorStatus){
+                		alert("Bad Request");
+                	}else if(409==errorStatus){
+                		alert("Modified by others");
+                	}else if(500==errorStatus){
+                		alert(error.error);
+                	}else{
+                		alert("System unavailable, please try later.");
+                	}
+                	console.log(error);
+                }
+            });
+        }
+    }
+
+    function deleteCgSample() {
+        var row = $('#' + datagridId).datagrid('getSelected');
+        if (row) {
+            $.messager.confirm('提醒', '确认删除此示例？', function(r) {
+                if (r) {
+                    requestMethod = 'DELETE';
+                    rs.http.ajaxJson({
+                        url: "/sample/cgSample",
+                        method: requestMethod,
+                        data: {"ids":[row.id]},
+                        success: function(result) {
+                            if (result.error) {
+                                $.messager.show({ // show error message
+                                    title: 'Error',
+                                    msg: result.error
+                                });
+                            } else {
+                                $('#' + datagridId).datagrid('reload'); // reload the user data
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+    </script>
+</body>
+
+</html>

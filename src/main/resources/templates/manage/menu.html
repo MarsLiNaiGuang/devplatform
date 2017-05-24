@@ -1,0 +1,932 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<div id="menuLayoutID" class="easyui-layout" fit="true">
+  <div class="easyui-panel" data-options="region:'center'">
+    <table id="dgMenu" class="easyui-treegrid" url="${base}/admin/menu/list" method="GET" toolbar="#menusToolbar" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" data-options="idField: 'id', treeField: 'name',
+    loadFilter: function(data){
+      if (data && data.rows.length > 0){
+        var treeData = rs.util.transFormTreeData('id', 'pid', data.rows);
+        return treeData;
+      }
+    }">
+      <thead>
+        <tr>
+          <th field="id" width="80" halign="center">菜单编码</th>
+          <th field="name" width="200" halign="center">菜单名</th>
+          <th field="url" width="300" halign="center">URL</th>
+          <th field="icon" width="50" halign="center" data-options="
+          formatter: function(value){
+            return '<a><i class= \''+ value + '\'></i></a>';
+          }">图标</th>
+          <th field="type" width="100" halign="center" data-options="
+                        formatter: function(value) {
+                            switch(value) {
+                                case 'A':
+                                    return '文件夹类型';
+                                case 'B':
+                                    return 'url节点';
+                                case 'C':
+                                    return '访问类型';
+                                default:
+                                    return value;
+                            }
+                        }
+                    ">类型</th>
+          <th field="sequence" width="50" halign="center">顺序</th>
+          <th field="opt" width="200" halign="center" data-options="
+                      formatter: function formatOper(val, row, index) {
+                        if (row.type === 'B'|| row.type === 'C') {
+                          // URL节点
+                          return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.edit(' + index + ')\'>修改</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.delete(' + index + ')\'>刪除</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.distributeOptAuth(' + index + ')\'>操作权限</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.distributeDtRuleAuth(' + index + ')\'>数据权限</a>]';
+                        } else if (row.children === undefined) {
+                          // 文件夹节点（无子菜单）
+                          return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.edit(' + index + ')\'>修改</a>][<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.delete(' + index + ')\'>刪除</a>]';
+                        } else {
+                          // 文件夹节点（有子菜单）
+                          return '[<a href=\'javascript:void(0)\' onclick=\'rs.dev.menu.edit(' + index + ')\'>修改</a>]';
+                        }
+                      }
+                    ">操作</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+  <div id="authPnl" class="easyui-panel" data-options="region:'east',collapsed:true, split:true" , title="权限列表" style="width:300px">
+    <table id="dgAuth">
+    </table>
+  </div>
+</div>
+<!-- 新增功能按钮 -->
+<div id="menusToolbar">
+  <div class="rs-datagrid-toolbar" style="background:transparent;">
+    <div class="btn-group">
+      <button style="margin-left:4px;" type="button" id="addMenuBtn" class="btn btn-info btn-sm" plain="true" onclick="rs.dev.menu.add()">
+        <i class="fa fa-plus" aria-hidden="true"></i> 新增
+      </button>
+    </div>
+  </div>
+</div>
+<!-- 新增弹出表单 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgMenu">
+  <div class="modal-dialog" role="document">
+
+    <div class="modal-content" style="border-radius: 2px;">
+      <!-- 弹出框头部标题 -->
+      <div class="modal-header">
+        <button class="close" data-dismiss="modal" aria-label="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
+        <h4 class="modal-title">新 增</h4>
+      </div>
+      <!-- 表单内容部分 -->
+      <div class="modal-body">
+        <form id="fmMenu" method="post" class="form-horizontal" novalidate>
+          <div>
+            <label for="menuCode">菜单编码：</label>
+            <div>
+              <input name="id" type="text" id="menuCode" class="easyui-textbox" required="true" placeholder="菜单编码" invalidMessage="长度为8位的数字组成">
+            </div>
+          </div>
+          <div>
+            <label for="cmbType">类型：</label>
+            <div>
+              <input name="type"
+                     id="cmbType"
+                     editable="false"
+                     class="easyui-combobox"
+                     data-options="valueField:'value',textField:'text', panelHeight:'auto', data: [
+                      {
+                          value: 'A',
+                          text: '文件夹类型'
+                      },
+                      {
+                          value: 'B',
+                          text: 'URL访问节点'
+                      },
+                      {
+                          value: 'C',
+                          text: '访问类型'
+                      }
+                  ],onSelect: rs.dev.menu.typeChange">
+            </div>
+          </div>
+          <div>
+            <label for="menuName">菜单名：</label>
+            <div>
+              <input type="text" name="name" id="menuName" placeholder="菜单名称" class="easyui-textbox" required="true">
+            </div>
+          </div>
+          <div>
+            <label for="urlId">URL：</label>
+            <div>
+              <input type="text" name="url" class="easyui-textbox" id="urlId" placeholder="URL" required="true">
+            </div>
+          </div>
+          <div>
+            <label for="seticon">图标：</label>
+            <div>
+              <input type="text" name="icon" id="seticon"
+                     editable="false" placeholder="图标"
+                     required="true" editable="false"
+                     class="easyui-combobox"
+                     data-options="valueField:'class',textField:'icon',showItemIcon: true,panelHeight:'100px', url:'${base}/data/fontawesome.json',method:'get',formatter: function(row){return '<a><i class= \''+ row.class + '\'></i><span>  '+row.icon+'</span></a>'
+            }">
+            </div>
+          </div>
+          <div>
+            <label for="cmbPid">父节点：</label>
+            <div>
+              <input name="pid" id="cmbPid" editable="false" class="easyui-combotree" placeholder="父节点">
+            </div>
+          </div>
+          <div>
+            <label for="menuSort">菜单顺序：</label>
+            <div>
+              <input name="sequence" data-options="min:0,value:1" class="easyui-numberbox" id="menuSort" placeholder="菜单顺序">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button type="button" class="btn btn-primary" onclick="rs.dev.menu.save(this)">保存</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="dlgOperationMenu" class="easyui-dialog" style="width:370px;height:500px;padding:10px 20px" closed="true" buttons="#dlg-authButtons" data-options="modal:true">
+  <form id="fmOpreationMenu" method="post" novalidate>
+    <div class="fitem" hidden="true">
+      <label>ID：</label>
+      <input name="id" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>权限名称：</label>
+      <input name="name" class="easyui-textbox" required="true">
+    </div>
+    <div class="fitem">
+      <label>权限描述：</label>
+      <input name="descp" class="easyui-textbox" required="true">
+    </div>
+    <div id="mebuTabs" class="easyui-tabs" style="width:300px;height:300px;">
+      <div title="按钮设置">
+        <table id="dgOpeartionButtons" class="easyui-datagrid" rownumbers="true" fitColumns="true" singleSelect="true" fit="true">
+          <thead>
+            <tr>
+              <th field="id" hidden="true">id</th>
+              <th field="name" width="200" halign="center">按钮名称</th>
+              <th data-options="field:'E',width:60,align:'center',editor:{type:'checkbox',options:{on:'true',off:'false'}}, formatter: rs.util.formatterBoolean">可编辑</th>
+              <th data-options="field:'S',width:60,align:'center',editor:{type:'checkbox',options:{on:'true',off:'false'}}, formatter: rs.util.formatterBoolean">可显示</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div title="列表栏目设置">
+        <table id="dgOpeartionColumns" class="easyui-datagrid" rownumbers="true" fitColumns="true" singleSelect="true" fit="true">
+          <thead>
+            <tr>
+              <th field="id" hidden="true">id</th>
+              <th field="name" width="200" halign="center">列表名称</th>
+              <th data-options="field:'E',width:60,align:'center',editor:{type:'checkbox',options:{on:'true',off:'false'}}, formatter: rs.util.formatterBoolean">可编辑</th>
+              <th data-options="field:'S',width:60,align:'center',editor:{type:'checkbox',options:{on:'true',off:'false'}}, formatter: rs.util.formatterBoolean">可显示</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  </form>
+</div>
+<div id="dlg-authButtons">
+  <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="rs.dev.menu.saveOperationMenu(this)" style="width:90px">保存</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlgOperationMenu').dialog('close')" style="width:90px">取消</a>
+</div>
+<div id="dlgDtrule" class="easyui-dialog" style="width:470px;height:300px;padding:10px 20px" closed="true" buttons="#dlg-dtRuleButtons" data-options="modal:true">
+  <div class="ftitle">权限信息</div>
+  <form id="fmDtrule" method="post">
+    <div class="fitem" hidden="true">
+      <label>ID：</label>
+      <input name="id" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>权限名称：</label>
+      <input name="name" class="easyui-textbox" required="true">
+    </div>
+    <div class="fitem">
+      <label>权限描述：</label>
+      <input name="descp" class="easyui-textbox" required="true">
+    </div>
+    <div class="fitem">
+      <label>条件：</label>
+      <input name="tj" class="easyui-textbox" required="true" id="inputTjTextbox" data-options="buttonText:'设置', onClickButton: rs.dev.menu.setTj">
+    </div>
+  </form>
+</div>
+<div id="dlgTj" class="easyui-dialog" style="width:400px;height:250px;padding:10px 20px" closed="true" buttons="#dlg-tjButtons" data-options="modal:true">
+  <div class="fitem">
+    <label>条件：</label>
+    <input name="tj" class="easyui-textbox" id="tjText">
+  </div>
+  <div class="fitem">
+    <label>点击标签配置条件：</label>
+    <div id="ButtonsDiv"></div>
+  </div>
+  <div>
+    <lable>判断条件示例：username='abc' and userage>=18</lable>
+  </div>
+  <div>
+    <lable>表达式支持： =, !=, >, >=,
+      <, <=, 可以用() , and/or 自由组合</lable>
+  </div>
+</div>
+<div id="dlg-dtRuleButtons">
+  <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="rs.dev.menu.saveDtRuleAuth(this)" style="width:90px">保存</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlgDtrule').dialog('close')" style="width:90px">取消</a>
+</div>
+<div id="dlg-tjButtons">
+  <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="rs.dev.menu.saveTj()" style="width:90px">保存</a>
+  <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlgTj').dialog('close')" style="width:90px">取消</a>
+</div>
+<!-- JavaScript -->
+<script type="text/javascript">
+rs.dev.menu = jQuery.extend({}, rs.dev.default, (function($) {
+  var urlMenu;
+  var methodMenu;
+  var dgIdMenu = 'dgMenu';
+  var fmIdMenu = 'fmMenu';
+  var dlgIdMenu = 'dlgMenu';
+  var menuVideMode;
+  var urlIdBackup;
+  var funcIdBackup;
+  var dgIdOperationMenu = 'dgOperationMenu';
+  var menuIdMenu;
+  // var funcidMenu;
+
+  var dlgIdOperationMenu = 'dlgOperationMenu';
+  var fmIdOperationMenu = 'fmOpreationMenu';
+
+  var dgIdOpeartionButtonsMenu = 'dgOpeartionButtons';
+  var dgIdOpeartionColumnsMenu = 'dgOpeartionColumns';
+  var urlOpeartionMenu;
+  var methodOpeartionMenu;
+
+  var dgIdAuth = 'dgAuth';
+  var urlDtRuleAuth;
+  var methodDtRuleAuth;
+  var dlgIdDtrule = 'dlgDtrule';
+  var fmIdDtrule = 'fmDtrule';
+  var dlgIdTj = 'dlgTj';
+  var tableColumnsFunc;
+
+
+
+  initMenuPage();
+
+  function initMenuPage() {
+    rs.util.mapTabTitleDialogId([dlgIdMenu, dlgIdOperationMenu]);
+  }
+
+  function fetchParentMenuList() {
+    return rs.http.get({
+      url: '/admin/menu/list',
+      success: function(result) {
+        if (result.errorMsg) {
+          rs.util.messageError(result.errorMsg);
+        } else {
+          var menus = result.rows;
+          var pMenus = [];
+          for (var i = 0, len = menus.length; i < len; ++i) {
+            var menu = menus[i];
+            if (menu && menu.type === 'A') pMenus.push(menu);
+          };
+          var treeData = rs.util.transFormTreeData('id', 'pid', pMenus);
+          rs.util.formateTreeDataNameToText(treeData, 'id', 'name');
+          $('#cmbPid').combotree('loadData', treeData);
+        }
+      }
+    });
+  }
+
+  function addMenu() {
+    var d1 = fetchParentMenuList();
+    $.when(d1).done(function() {
+      $('#' + dlgIdMenu, rs.util.getSelectedTab()).modal('show');
+      $('h4', $('#' + dlgIdMenu)).text('新增菜单');
+      $('#' + fmIdMenu).form('reset');
+      urlMenu = '/admin/menu';
+      methodMenu = 'POST';
+      menuVideMode = rs.constant.VIEWMODE_ADD;
+      $('#cmbType').combobox('setValue', 'A');
+      $('#seticon').combobox('setValue', 'fa fa-folder-o');
+//      $('div.fitem input')[1].readOnly = false;
+      $('#fmMenu>div:nth-of-type(1) input').readOnly = false;
+      var row = $('#' + dgIdMenu).treegrid('getSelected');
+      if (row && row.id && row.type === 'A') {
+        $('#cmbPid').combotree('setValue', {
+          id: row.id,
+          text: row.name
+        });
+      }
+    });
+  }
+
+  function editMenu(index) {
+
+    var d1 = fetchParentMenuList(); //获取父级菜单列表
+    $.when(d1).done(function() {
+      if (index !== undefined) {
+
+        $('#' + dgIdMenu).treegrid('unselectAll');
+        $('#' + dgIdMenu).treegrid('selectRow', index);
+      }
+      var row = $('#' + dgIdMenu).treegrid('getSelected');
+      if (row) {
+        $('div.fitem input')[1].readOnly = true;
+        // $('#' + dlgIdMenu).dialog('open').dialog('setTitle', '修改菜单');
+        $('#' + dlgIdMenu, rs.util.getSelectedTab()).modal('show');
+        $('h4', $('#' + dlgIdMenu)).text('修改菜单');
+
+        $('#' + fmIdMenu).form('load', row);
+        urlMenu = '/admin/menu/' + row.id;
+        methodMenu = 'PUT';
+        menuVideMode = rs.constant.VIEWMODE_EDIT;
+      } else {
+        rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+      }
+    });
+  }
+
+  function saveMenu(button) {
+    if ($('#' + fmIdMenu).form('validate')) {
+      $(button).attr('disabled',"true");
+      var formData = rs.util.formGetData(fmIdMenu);
+      var msg;
+      if (menuVideMode === rs.constant.VIEWMODE_ADD) {
+        msg = '创建成功';
+      } else if (menuVideMode === rs.constant.VIEWMODE_EDIT) {
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlMenu,
+        method: methodMenu,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo(msg);
+            $('#' + dlgIdMenu, rs.util.getSelectedTab()).modal('hide');
+            $('#' + dgIdMenu).treegrid('reload');
+            rs.util.navTreeGetTreeView(rs.global.navTreeId);
+          }
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled');
+      });
+    }
+  }
+
+  function deleteMenu() {
+    setTimeout(function() {
+      var row = $('#' + dgIdMenu).treegrid('getSelected');
+      if (row) {
+        rs.util.messageConfirm('确认删除此菜单？', '提醒', function() {
+          urlMenu = '/admin/menu/' + row.id;
+          methodMenu = 'DELETE';
+          rs.http.ajaxJson({
+            url: urlMenu,
+            method: methodMenu,
+            success: function(result) {
+              if (result.error) {
+                rs.util.messageError(result.error);
+              } else {
+                rs.util.messageInfo('删除成功');
+                $('#' + dgIdMenu).treegrid('reload'); // reload the menu data
+                rs.util.navTreeGetTreeView(rs.global.navTreeId);
+              }
+            }
+          });
+        });
+      } else {
+        rs.util.messageWarning(rs.constant.MESSAGE_DELETE);
+      }
+    }, 1)
+  }
+
+  function typeChange(record) {
+    var value = record.value,
+      urlId = $('#urlId');
+      setTextBoxFun();
+    if (value === "A") {
+      setIconCode('fa fa-folder-o'); //iconCode 传递给setIconCode 
+      urlIdBackup = urlId.textbox('getValue');
+      urlId.textbox('clear');
+      urlId.textbox('disable');
+    } else if (value === "B" || value === "C") {
+      setIconCode('fa fa-circle-o');
+      urlId.textbox({
+        required: true,
+        disabled: false
+      });
+      urlIdBackup && urlId.textbox('setValue', urlIdBackup);
+    }
+  }
+
+  //菜单管理-点击新增/修改的弹出框里，当类型选择“文件夹类型”时给默认图标fa-folder-o；
+  //当类型选择“URL访问节点”或“访问类型”时给默认图标fa-circle-o。
+  function setIconCode(iconCode) {
+    $('#seticon').combobox('setValue', iconCode);
+  }
+
+  function distributeOptAuth() {
+    setTimeout(function() {
+      var row = $('#' + dgIdMenu).treegrid('getSelected');
+      if (row) {
+        menuIdMenu = row.id;
+        initAuthDataGrid("Opt").done(function() {
+          var p = $("#menuLayoutID").layout("panel", "east")[0].clientWidth;
+          if (p <= 0) {
+            $("#menuLayoutID").layout('expand', 'east');
+          }
+          $('#authPnl').panel('setTitle', "操作权限列表[" + row.name + "]");
+        });
+      } else {
+        rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+      }
+    }, 1)
+  }
+
+  // function popMenuIdWindow(index) {
+  //   if (index !== undefined) {
+  //     $('#' + dgIdMenu).treegrid('unselectAll');
+  //     $('#' + dgIdMenu).treegrid('selectRow', index);
+  //   }
+  //   var row = $('#' + dgIdMenu).treegrid('getSelected');
+  //   if (row && row.id) {
+  //     $('#windowMenu').window({
+  //       title: '菜单编码'
+  //     });
+  //     var dataContent = row.id;
+  //     $('#inputMenuId').textbox('setText', dataContent);
+  //     $('#windowMenu').window('open');
+
+  //     // 复制
+  //     var clipboard = new Clipboard('#btnCopyMenuId', {
+  //       text: function() {
+  //         return dataContent;
+  //       }
+  //     });
+  //     clipboard.on('success', function(e) {
+  //       rs.util.messageInfo('复制成功');
+  //       $('#windowMenu').window('close');
+  //     });
+  //     clipboard.on('error', function(e) {
+  //       rs.util.messageError('复制失败，请手工复制');
+  //     });
+  //   }
+  // }
+
+  function distributeDtRuleAuth() {
+    setTimeout(function() {
+      var row = $('#' + dgIdMenu).treegrid('getSelected');
+      if (row) {
+        menuIdMenu = row.id;
+        // funcidMenu = row.funcId;
+        initAuthDataGrid("DtRule").done(function() {
+          var p = $("#menuLayoutID").layout("panel", "east")[0].clientWidth;
+          if (p <= 0) {
+            $("#menuLayoutID").layout('expand', 'east');
+          }
+          $('#authPnl').panel('setTitle', "数据权限列表[" + row.name + "]");
+        });
+      } else {
+        rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+      }
+    }, 1)
+  }
+
+  function addOpeartionMenu() {
+    urlOpeartionMenu = '/auth/operation';
+    methodOpeartionMenu = 'POST';
+    getButtons(menuIdMenu);
+    getColumns(menuIdMenu);
+    $('#' + dlgIdOperationMenu).dialog('open').dialog('setTitle', '新增权限');
+    $('#' + fmIdOperationMenu).form('reset');
+  }
+
+  function editOpeartionMenu() {
+    var row = $('#' + dgIdAuth).datagrid('getSelected');
+    if (row) {
+      $('#' + dlgIdOperationMenu).dialog('open').dialog('setTitle', '修改权限');
+      $('#' + fmIdOperationMenu).form('load', row);
+      getButtons(menuIdMenu, row.content);
+      getColumns(menuIdMenu, row.content);
+      urlOpeartionMenu = '/auth/operation/' + row.id;
+      methodOpeartionMenu = 'PUT';
+    }
+  }
+
+  function deleteOpeartionMenu() {
+    var row = $('#' + dgIdAuth).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm('确认删除操作权限？', '提醒', function() {
+        urlOpeartionMenu = '/auth/operation';
+        methodOpeartionMenu = 'DELETE';
+        var param = [];
+        param.push(row.id);
+        rs.http.ajaxJson({
+          url: urlOpeartionMenu,
+          method: methodOpeartionMenu,
+          data: {
+            operations: param
+          },
+          success: function(result) {
+            if (result.error) {
+              rs.util.messageError(result.error);
+            } else {
+              rs.util.messageInfo("删除成功");
+              getOperationData(menuIdMenu);
+            }
+          }
+        });
+      });
+    }
+  }
+
+  function getOperationData(menuIdMenu) {
+    urlOpeartionMenu = '/auth/operation/' + menuIdMenu + '/list';
+    methodOpeartionMenu = 'GET';
+    return rs.http.ajaxJson({
+      url: urlOpeartionMenu,
+      method: methodOpeartionMenu,
+      success: function(result) {
+        rs.util.datagridSetData(dgIdAuth, result);
+        rs.util.datagridAutoSelectFirstRow(dgIdAuth);
+      }
+    });
+  }
+
+  function getDtRuleData(menuid) {
+    var urlDtRule = '/auth/dtrule/' + menuid + '/list';
+    var methodDtRule = 'GET';
+    return rs.http.ajaxJson({
+      url: urlDtRule,
+      method: methodDtRule,
+      success: function(result) {
+        rs.util.datagridSetData(dgIdAuth, result);
+        rs.util.datagridAutoSelectFirstRow(dgIdAuth);
+      }
+    });
+  }
+
+  function getOptData(menuId) {
+    var urlOpt = '/auth/operation/' + menuId + '/list';
+    var methodOpt = 'GET';
+    return rs.http.ajaxJson({
+      url: urlOpt,
+      method: methodOpt,
+      success: function(result) {
+        rs.util.datagridSetData(dgIdAuth, result);
+        rs.util.datagridAutoSelectFirstRow(dgIdAuth);
+      }
+    });
+  }
+
+  function saveOperationMenu(button) {
+    if ($('#' + fmIdOperationMenu).form('validate')) {
+      $(button).linkbutton('disable');
+
+      rs.util.datagridEndEditAll(dgIdOpeartionButtonsMenu);
+      rs.util.datagridEndEditAll(dgIdOpeartionColumnsMenu);
+      var buttonData = $('#' + dgIdOpeartionButtonsMenu).datagrid('getRows');
+      var columnData = $('#' + dgIdOpeartionColumnsMenu).datagrid('getRows');
+      var formData = rs.util.formGetData(fmIdOperationMenu);
+      formData['menuid'] = menuIdMenu;
+      var items = [];
+      if (buttonData && buttonData.length > 0) {
+        var selectItem;
+        $.each(buttonData, function(index, item) {
+          var selectItem = {
+            id: item.id,
+            E: item.E,
+            S: item.S
+          };
+          items.push(selectItem);
+        });
+      }
+
+      if (columnData && columnData.length > 0) {
+        var selectItem;
+        $.each(columnData, function(index, item) {
+          var selectItem = {
+            id: item.id,
+            E: item.E,
+            S: item.S
+          };
+          items.push(selectItem);
+        });
+      }
+
+      formData['content'] = items;
+
+      rs.http.ajaxJson({
+        url: urlOpeartionMenu,
+        method: methodOpeartionMenu,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            $('#' + dlgIdOperationMenu).dialog('close');
+            getOperationData(menuIdMenu);
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function getButtons(menuIdMenu, contents) {
+    rs.http.ajaxJson({
+      url: '/admin/func/button/' + menuIdMenu,
+      method: 'GET',
+      success: function(result) {
+        if (contents === 'undefined') {
+          rs.util.datagridSetData(dgIdOpeartionButtonsMenu, result);
+          rs.util.datagridBeginEditAll(dgIdOpeartionButtonsMenu);
+        } else {
+          var rows = result.rows;
+          if (rows && rows.length > 0 && contents && contents.length > 0) {
+            $.each(result.rows, function(index, row) {
+              $.each(contents, function(index, content) {
+                if (content.id == row.id) {
+                  row.E = content.E;
+                  row.S = content.S;
+                }
+              });
+            });
+          }
+          rs.util.datagridSetData(dgIdOpeartionButtonsMenu, result);
+          rs.util.datagridBeginEditAll(dgIdOpeartionButtonsMenu);
+        }
+      }
+    });
+  }
+
+  function getColumns(menuIdMenu, contents) {
+    rs.http.ajaxJson({
+      url: '/admin/func/column/' + menuIdMenu,
+      method: 'GET',
+      success: function(result) {
+        if (contents === 'undefined') {
+          rs.util.datagridSetData(dgIdOpeartionColumnsMenu, result);
+          rs.util.datagridBeginEditAll(dgIdOpeartionColumnsMenu);
+        } else {
+          var rows = result.rows;
+          if (rows && rows.length > 0 && contents && contents.length > 0) {
+            $.each(result.rows, function(index, row) {
+              $.each(contents, function(index, content) {
+                if (content.id == row.id) {
+                  row.E = content.E;
+                  row.S = content.S;
+                }
+              });
+            });
+          }
+          rs.util.datagridSetData(dgIdOpeartionColumnsMenu, result);
+          rs.util.datagridBeginEditAll(dgIdOpeartionColumnsMenu);
+        }
+      }
+    });
+  }
+
+  function setTj() {
+    $('#' + dlgIdTj).dialog('open').dialog('setTitle', '设置条件');
+    $('#tjText').textbox('reset');
+    $('#ButtonsDiv').empty();
+    if (tableColumnsFunc && tableColumnsFunc.length > 0) {
+      $.each(tableColumnsFunc, function(index, item) {
+        $('<button/>', {
+          href: "javascript:void(0)",
+          plain: "true",
+          text: item.name　 + " - " + item.columnName
+        }).click(function() {
+          var tj = $('#tjText').textbox('getValue') + item.columnName;
+          $('#tjText').textbox('setValue', tj);
+        }).appendTo($('#ButtonsDiv'));
+      });
+    }
+  }
+
+  function addDtRuleAuth() {
+    urlDtRuleAuth = '/auth/dtrule';
+    methodDtRuleAuth = 'POST';
+    getDtRuleColumns(menuIdMenu);
+    $('#' + dlgIdDtrule).dialog('open').dialog('setTitle', '新增权限');
+    $('#' + fmIdDtrule).form('reset');
+  }
+
+  function editDtRuleAuth() {
+    var row = $('#' + dgIdAuth).datagrid('getSelected');
+    if (row) {
+      getDtRuleColumns(menuIdMenu);
+      $('#' + dlgIdDtrule).dialog('open').dialog('setTitle', '修改权限');
+      $('#' + fmIdDtrule).form('load', row);
+      urlDtRuleAuth = '/auth/dtrule/' + row.id;
+      methodDtRuleAuth = 'PUT';
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function deleteDtRuleAuth() {
+    var row = $('#' + dgIdAuth).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm('确认删除数据权限权限？', '提醒', function() {
+        urlDtRuleAuth = '/auth/dtrule';
+        methodDtRuleAuth = 'DELETE';
+        var param = [];
+        param.push(row.id);
+        rs.http.ajaxJson({
+          url: urlDtRuleAuth,
+          method: methodDtRuleAuth,
+          data: {
+            ids: param
+          },
+          success: function(result) {
+            if (result.error) {
+              rs.util.messageError(result.error);
+            } else {
+              rs.util.messageInfo('删除成功');
+              getDtRuleData(menuIdMenu);
+            }
+          }
+        });
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function saveDtRuleAuth(button) {
+    if ($('#' + fmIdDtrule).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdDtrule);
+      formData['menuid'] = menuIdMenu;
+      rs.http.ajaxJson({
+        url: urlDtRuleAuth,
+        method: methodDtRuleAuth,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo('保存成功');
+            $('#' + dlgIdDtrule).dialog('close');
+            getDtRuleData(menuIdMenu);
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function getDtRuleColumns(menuId) {
+    rs.http.ajaxJson({
+      url: '/admin/func/column/' + menuId,
+      method: 'GET',
+      success: function(result) {
+        tableColumnsFunc = result.rows;
+      }
+    });
+  }
+
+  function saveTj() {
+    var tj = $('#tjText').textbox('getValue');
+    $('#inputTjTextbox').textbox('setValue', tj);
+    $('#' + dlgIdTj).dialog('close')
+  }
+
+  function initAuthDataGrid(type) {
+    var columns = [];
+    var toolbar = [];
+    if (type === "Opt") {
+      columns = [{
+        field: "id",
+        title: "操作权限编码",
+        hidden: true
+      }, {
+        field: "name",
+        title: "操作权限名称",
+        halign: "center",
+        width: "100"
+      }, {
+        field: "descp",
+        title: "操作权限描述",
+        halign: "center",
+        width: "200"
+      }];
+      toolbar = [{
+        iconCls: 'icon-add',
+        handler: rs.dev.menu.addOpeartionMenu
+      }, {
+        iconCls: 'icon-edit',
+        handler: rs.dev.menu.editOpeartionMenu
+      }, {
+        iconCls: 'icon-remove',
+        handler: rs.dev.menu.deleteOpeartionMenu
+      }];
+      $('#' + dgIdAuth).datagrid({
+        columns: [columns],
+        toolbar: toolbar,
+        singleSelect: true,
+        fit: true,
+        // fitColumns: true,
+        pagination: false,
+        rownumbers: true
+      });
+      return getOptData(menuIdMenu);
+    } else if (type === "DtRule") {
+      columns = [{
+        field: "id",
+        title: "数据权限编码",
+        hidden: true
+      }, {
+        field: "name",
+        title: "数据权限名称",
+        halign: "center",
+        width: "100"
+      }, {
+        field: "descp",
+        title: "数据权限描述",
+        halign: "center",
+        width: "100"
+      }, {
+        field: "tj",
+        title: "条件",
+        halign: "center",
+        width: "200"
+      }];
+      toolbar = [{
+        iconCls: 'icon-add',
+        handler: rs.dev.menu.addDtRuleAuth
+      }, {
+        iconCls: 'icon-edit',
+        handler: rs.dev.menu.editDtRuleAuth
+      }, {
+        iconCls: 'icon-remove',
+        handler: rs.dev.menu.deleteDtRuleAuth
+      }];
+      $('#' + dgIdAuth).datagrid({
+        columns: [columns],
+        toolbar: toolbar,
+        singleSelect: true,
+        fit: true,
+        // fitColumns: true,
+        pagination: false,
+        rownumbers: true
+      });
+      return getDtRuleData(menuIdMenu);
+    }
+  }
+    $('#addMenuBtn').on('click',setTextBoxFun);
+    function setTextBoxFun(){
+        var $setTextBox = $('#fmMenu div>input').siblings('span'),
+            $textBoxHeight = '34px';
+        $setTextBox.css({width:'100%',height:$textBoxHeight,borderRadius:'2px'});
+        $setTextBox.find('input').css({height:'100%',width:'100%'});
+        $setTextBox.find('span>a').css({height:$textBoxHeight});
+        return false;
+    }
+  return {
+    add: addMenu,
+    edit: editMenu,
+    save: saveMenu,
+    delete: deleteMenu,
+    addOpeartionMenu: addOpeartionMenu,
+    editOpeartionMenu: editOpeartionMenu,
+    saveOperationMenu: saveOperationMenu,
+    deleteOpeartionMenu: deleteOpeartionMenu,
+    typeChange: typeChange,
+    // popMenuIdWindow: popMenuIdWindow,
+    distributeOptAuth: distributeOptAuth,
+    distributeDtRuleAuth: distributeDtRuleAuth,
+    setTj: setTj,
+    saveTj: saveTj,
+    addDtRuleAuth: addDtRuleAuth,
+    editDtRuleAuth: editDtRuleAuth,
+    deleteDtRuleAuth: deleteDtRuleAuth,
+    saveDtRuleAuth: saveDtRuleAuth
+  };
+
+})(jQuery));
+(function($){
+    var
+        $fmMenuFormGroup = $('#fmMenu>div'),
+        $fmMenuLabel = $fmMenuFormGroup.find('label'),
+        $fmMenu_div_div = $('#fmMenu>div>div');
+    $fmMenuFormGroup.addClass('form-group');
+    $fmMenuLabel.addClass('col-sm-2 control-label');
+    $fmMenu_div_div.addClass('col-sm-10');
+})(jQuery)
+</script>

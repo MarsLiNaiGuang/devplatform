@@ -1,0 +1,10 @@
+/*#tabsForm .datagrid-view2 .datagrid-header-inner,
+#tabsForm .datagrid-view2 .datagrid-htable,
+#tabsForm .datagrid-view2 .datagrid-btable,
+#tabsForm .datagrid-view2 .textbox {
+    width: 100% !important;
+}*/
+
+#tabsForm .textbox {
+    border: none;
+}

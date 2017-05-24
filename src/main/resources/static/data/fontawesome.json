@@ -1,0 +1,47 @@
+[
+  {
+    "icon": "fa-comment-o",
+    "class": "fa fa-comment-o"
+  },{
+    "icon": "fa-folder-o",
+    "class": "fa fa-folder-o"
+  },{
+    "icon": "fa-circle-o",
+    "class": "fa fa-circle-o"
+  },{
+    "icon": "fa-laptop",
+    "class": "fa fa-laptop"
+  },{
+    "icon": "fa-space-shuttle",
+    "class": "fa fa-space-shuttle"
+  },{
+    "icon": "fa-television",
+    "class": "fa fa-television"
+  },
+
+
+
+
+  {
+    "icon": "fa-battery-empty",
+    "class": "fa fa-battery-empty"
+  },{
+    "icon": "fa-battery-quarter",
+    "class": "fa fa-battery-quarter"
+  },{
+    "icon": "fa-battery-half",
+    "class": "fa fa-battery-half"
+  },{
+    "icon": "fa-battery-three-quarters",
+    "class": "fa fa-battery-three-quarters"
+  },{
+    "icon": "fa-battery-full",
+    "class": "fa fa-battery-full"
+  },{
+    "icon": "fa fa-bus",
+    "class": "fa fa-bus"
+  },{
+    "icon": "fa-star-o",
+    "class": "fa fa-star-o"
+  }
+]

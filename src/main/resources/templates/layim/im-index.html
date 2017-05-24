@@ -1,0 +1,653 @@
+<#assign base=request.contextPath />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style type="text/css">
+    .group-manage-box{
+      display: flex;
+      height: 100%;
+    }
+    #group-list-box{
+      width: 40%;
+      height: 100%;
+      margin-right: 5%;
+      border-right: 1px solid #ccc;
+      padding: 0 10px;
+    }
+    #group-lists{
+      padding-left: 10px;
+    }
+    #group-member-box{
+      width: 50%;
+      height: 100%;
+    }
+    #group-list-box h4{
+      display: inline-block;
+      padding: 5px 15px;
+      color: #5FB878;
+      border-bottom: 3px solid #5FB878;
+    }
+    .group-item{
+      margin-bottom: 5px;
+      font-size: 0;
+    }
+    .group-item *{
+      display: inline-block;
+      font-size: 16px;
+      vertical-align: middle;
+    }
+    .new-topic-button{
+      margin: 10px 0;
+      text-align: center;
+    }
+    .imuser-actor{
+      padding-left: 20px;
+    }
+    .imuser-list li{
+      display: inline-block;
+      width: 25%;
+      margin: 10px 0;
+      font-size: 0;
+    }
+    .imuser-list li *{
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      vertical-align: middle;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .imuser-list li input{
+      margin-right: 10px;
+    }
+    .avatar-list{
+      border:1px solid #ccc;
+    }
+    .avatar-list .avatar-item{
+      display: inline-block;
+      margin: 10px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+    }
+    .avatar-item img{
+      width: 100%;
+    }
+    .edit-userinfo .form-item{
+      margin-bottom: 10px;
+      font-size:0;
+    }
+    .edit-userinfo .form-item *{
+      display: inline-block;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    .edit-userinfo .form-item input{
+      padding: 1px 10px;
+      border: 1px solid #ccc;
+    }
+    .edit-userinfo .form-item button{
+      border:none;
+      outline: none;
+      background: none;
+      text-decoration: underline;
+      margin-left: 20px;
+    }
+    .avatar-box{
+      display: none;
+    }
+    .avatar-box h4{
+      padding: 10px 0;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    #currentAvatar{
+      width: 30px;
+      height: 30px;
+    }
+  </style>
+</head>
+<body>
+  <script id="GItpl" type="text/html">
+      {{# layui.each(d,function(index,item){ }}
+        <li class="group-item">
+          <span class="group-item-name">{{ item.groupname}} ({{ item.actor.split(',').length}})</span>
+        </li>
+      {{# }); }}
+  </script>
+  <script id="GMtpl" type="text/html">
+    <ul class="group-member-lists">
+      {{# layui.each(d,function(index,item){ }}
+        <li class="group-member-item">
+          <span>{{item.username}}</span>
+        </li>
+      {{# }); }}
+    </ul>
+  </script>
+  <script type="text/html" id="NTtpl">
+    <form class="new-topic-info">
+      <div class="form-item">
+        <label class="layui-form-label">讨论组名称：</label>
+        <div class="layui-input-block">
+          <input type="text" name="name" required  lay-verify="required" placeholder="请输入讨论组名称" autocomplete="off" class="layui-input">
+        </div>
+      </div>
+      <ul class="user-list">
+      </ul>
+    </form>
+  </script>
+  <script>
+  (function(window,$){
+    var MAX_AVATAR_SIZE = 100; // 单位kB
+    var CURRENT_USER_NAME = window.localStorage.getItem('username');
+    var CURRENT_USER_ID = window.localStorage.getItem('userId');
+    var mine = {
+        username:CURRENT_USER_NAME,
+        id:CURRENT_USER_ID,
+        status:'online',
+        sign:'',
+    };
+    //用户群组信息
+    var userGroupInfo = {groups:[]}
+    //获取所有用户，并按所属部门进行分组
+    $.ajax({
+      url:window.rsContextPath + '/im/login/userlist',
+      method:'GET',
+      async:false,
+      success:function(res){
+        if(res && res.total > 0){
+          var resTemp = objDeepCopy(res);
+          $.each(resTemp.rows,function(index,item){
+            var temp = {};
+            temp.userId = item.id;
+            temp.groupName = '未命名分组';
+            userGroupInfo.groups.push(temp);
+          })
+        }
+      }
+    })
+    var d1 = rs.http.ajax({
+      url:'/im/login/userlist',
+      method:'POST',
+      data:JSON.stringify(userGroupInfo),
+      contentType: 'application/json; charset=UTF-8'
+    })
+    var d2 = rs.im.getTopicList();
+    $.when(d1,d2).done(function(user,group){
+      var rsUserInfo = convertUserInfoOrGroupInfo(user[0].rows,'user');
+      var rsGroupInfo = convertUserInfoOrGroupInfo(group[0].rows,'group');
+      var friends = sortUserInfoByStatus(user),
+          groups=convertGroupDataFormat(group),
+          currentUserIndex;
+      layui.use(['layim','layer','laytpl','form'],function(){
+        var laytpl = layui.laytpl;
+        var form = layui.form;
+        var layim = layui.layim;
+
+        //渲染未读聊天记录
+        fetchFriendUnreadMessage(layim,rsUserInfo);
+        fetchGroupUnreadMessage(layim,rsGroupInfo,rsUserInfo);
+
+        //给layim群组面板添加右键菜单事件
+        layim.events.menuGroup = function(othis, e){
+          var parent = othis.parent(), type = othis.data('type');
+          var groupElem = $('.layim-list-group');
+           var key = parent.attr('data-index');
+          if(type === 'add'){
+            addOrEditTopic(layer,layim,user[0].rows,'add',key,groups);
+          } else if(type === 'delete') {
+            deleteTopic(layer,layim,key,groups);
+          }else if(type === 'edit'){
+            var temp = JSON.parse(JSON.stringify(user[0].rows));
+            rs.im.getTopicInfo(groups[key].id).done(function(res){
+              if(res && res.total > 0){
+                var actors = [];
+                $.each(res.rows, function(index, item) {
+                  actors.push(item.id);
+                })
+                $.each(temp,function(index,item){
+                  if(actors.indexOf(item.id) !== -1){
+                    item.checked = true;
+                  }else{
+                    item.checked = false;
+                  }
+                })
+              }
+              addOrEditTopic(layer,layim,temp,'edit',key,groups);
+            })
+          }
+          
+          layer.closeAll('tips');
+        }
+        $('body').on('click','[rs-event]',function(e){
+          var othis = $(this), methid = othis.attr('rs-event');
+          layim.events[methid] ? layim.events[methid].call(this, othis, e) : '';
+        })
+
+        //替换layim框架中的groupMembers事件
+        layim.on('chatChange',function(obj){
+          $('[layim-event="groupMembers"]').attr('rs-event','rsGroupMembers');
+          $('[layim-event="groupMembers"]').removeAttr('layim-event');
+        })
+
+
+        layim.config({
+          init:{
+            mine:mine,
+            friend:friends,
+            group:groups
+          },
+          title:'我的IM',
+          members:{
+            url:window.rsContextPath + '/im/topic/',
+          },
+          uploadFile:{
+            url:window.rsContextPath + '/im/file/uploadFile',
+            type:'POST'
+          },
+          notice:false,
+          chatLog: window.rsContextPath + layui.cache.dir + 'css/modules/layim/html/chatLog.html',
+          copyright:true
+        })
+        $('.layui-layim-tool').append('<li class="layui-icon layim-tool-search" id="toAll" title="群发消息">&#xe609;</li><li class="layui-icon layim-tool-search" id="editUserInfo" title="修改个人资料">&#xe642;</li>');
+        $('body').on('click','#toAll',function(){
+          layim.chat({
+            name: '群发消息'
+            ,type: 'friend' //群组类型
+            ,avatar: 'http://tp2.sinaimg.cn/5488749285/50/5719808192/1'
+            ,id: 'toalluser' //定义唯一的id方便你处理信息
+          });
+        })
+        $('body').on('click','#editUserInfo',function(){
+          layer.open({
+            title:'修改个人资料',
+            content:'<div class="edit-userinfo"><div class="form-item"><label>昵称：</label><input type="text" value="'+rsUserInfo[CURRENT_USER_ID].nkname+'" autocomplete="off" class="nkname"></div><div class="form-item"><label>头像：</label><span id="currentAvatarBox" style=""><img id="currentAvatar" src="'+mine.avatar+'"></span><button id="changeAvatar">更换头像</button><form id="avatarUploadFM"><input type="file" name="icon" id="avatarInputBox" style="display:none"/></form></div></div>',
+            success:function(layero){
+              layero.css('zIndex',900);
+              $('.layui-layer-shade').css('zIndex',900);
+            },
+            yes:function(index,layero){
+              var src = layero.find('#avatarSrc').val();
+              var nkname = layero.find('.nkname').val();
+              var obj = layero.find('#avatarInputBox');
+              if(!checkAvatar(obj)){
+                return;
+              }
+              if($.trim(nkname) === ''){
+                rs.util.messageError('昵称不能为空');
+                return;
+              }
+              var formData = new FormData($("#avatarUploadFM")[0]);
+              var avatar = formData.get('icon');
+              if(avatar.name === ''){
+                rs.util.messageWarning('未选择新头像');
+                return;
+              }
+              formData.append('nkname',nkname);
+              rs.im.fileUpload({
+                url:'/im/user/addIcon',
+                method:'PUT',
+                data:formData
+              }).done(function(res){
+                  window.localStorage.setItem('currentUserAvatar','data:image/jpeg;base64,' + res.icon);
+                  mine.avatar = 'data:image/jpeg;base64,' + res.icon;
+                  rsUserInfo[res.userid].nkname = nkname;
+                  layer.msg('个人资料成功',{icon:1,time:2000});
+                })
+            }
+          })
+        })
+        $('body').on('click','#changeAvatar',function(){
+          $('#avatarInputBox').trigger('click');
+        })
+        $('body').on('change','#avatarInputBox',function(){
+          var file = this;
+          if(checkAvatar(file)){
+            if (file.files && file.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                  $('#currentAvatar').attr('src',evt.target.result)
+                }
+                reader.readAsDataURL(file.files[0]);
+            } else {
+              $('#currentAvatar').hide();
+              var prev = '<div class="img" style="display:inline-block;width:40px;height:40px;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=scale,src=\'' + file.value + '\'"></div>';
+              $('#currentAvatarBox').append(prev);
+            }
+          }else{
+            //如果上传的头像不符合要求，将选择的文件清除
+            if (file.outerHTML) {  
+              file.outerHTML = file.outerHTML;  
+            } else { // FF(包括3.5)  
+              file.value = "";  
+            }  
+          }
+        })
+
+        function checkAvatar(file){
+          if(file.files && file.files[0]){
+            var filename = file.files[0].name;
+            var reg = /[^\s]+\.(jpg|png)/i;
+            if(!reg.test(filename)){
+              rs.util.messageError('请上传jpg或者png格式的图片');
+              return false;
+            }
+            if(rs.im.fileSizeIsOverMax(file,MAX_AVATAR_SIZE)){
+              rs.util.messageWarning('头像大小不能超过' + MAX_AVATAR_SIZE + 'k');
+              return false;
+            }
+          }
+          return true;
+        }
+
+        //初始化websocket
+        var sock = new SockJS(window.rsContextPath + '/rs-websocket');
+
+        sock.onerror = function(event){
+          rs.util.messageError('聊天工具初始化失败，请刷新后重试');
+        }
+        sock.onopen = function(event){
+          if(event.type === 'open'){
+            layer.msg('登录成功',{icon:1,time:2000})
+          }
+        }
+        sock.onclose = function(event){
+          if(event.type === 'close'){
+            rs.util.messageInfo('退出登录成功！')
+            $('.layui-layer').remove();
+            $('#rs-im-control').show();
+          }
+        }
+        sock.onmessage = function(event){
+          if(event && event.data){
+            var res  = JSON.parse(event.data);
+            if(res && res.contype === 'N'){
+              if(res.content === 'online'){
+                var data = layim.cache().friend;
+                $.each(data,function(index,item){
+                  $.each(item.list,function(cindex,citem){
+                    if(citem.id === res.sender){
+                      item.list.unshift(citem);
+                      item.list.splice(cindex,1);
+                    }
+                  })
+                })
+                var senderItem = $('.layim-friend' + res.sender).filter('.layim-list-gray');
+                var senderItemCopy = senderItem.clone();
+                var senderItemParent = senderItem.parent();
+                senderItem.remove();
+                senderItem.prependTo(senderItemParent);
+              }
+              layim.setFriendStatus(res.sender,res.content);
+            }else if(res){
+              var type = (res.type==='U')?'friend':'group';
+              var groupname = (res.type==='U')?'':rsGroupInfo[res.recver].groupname;
+              var id = (res.type==='U')?res.sender:res.recver;
+              layim.getMessage({
+                username:rsUserInfo[res.sender].name,
+                avatar:rsUserInfo[res.sender].avatar,
+                groupname:groupname,
+                id:id,
+                type: type,
+                content:res.content,
+                mine:false,
+                fromid:res.sender,
+                timestamp:res.sendTime
+              })
+            }
+          }
+        }
+        layim.on('sendMessage',function(res){
+          var obj = {
+            contype:'M',
+            content:res.mine.content
+          };
+          if(res && res.to){
+            if(res.to.id === 'toalluser'){
+              rs.im.sendToAll(obj);
+              return;
+            };
+            obj.id = res.to.id;
+            if(res.to.type === 'friend'){
+              rs.im.chatWithOne(obj);
+              return;
+            };
+            if(res.to.type === 'group'){
+              rs.im.chatInTopic(obj);
+            }
+          }
+
+        })
+        layim.on('online', function(status){
+          if(status === 'hide'){
+            sock.close();
+          }
+        });
+      })
+    })
+    function convertUserInfoOrGroupInfo(obj,type){
+      var temp = [];
+      $.each(obj,function(index,item){
+        temp[item.id] = item;
+        if(type === 'user'){
+          item.avatar = item.icon?item.icon:window.rsContextPath + '/images/avatar/1.png';
+        }
+      })
+      return temp;
+    }
+    function convertGroupDataFormat(group){
+      var temp = new Array;
+      var tempGroup = objDeepCopy(group);
+      if(tempGroup[0] && tempGroup[0].total > 0){
+        $.each(tempGroup[0].rows,function(index,item){
+          item.groupname = item.name;
+          item.avatar = window.rsContextPath + '/images/avatar/1.jpg';
+          temp.push(item);
+        })
+      }
+      return temp;
+    }
+    function sortUserInfoByStatus(user){
+      var tempArr = [];
+      var tempUser = objDeepCopy(user);
+      if(tempUser[0] && tempUser[0].total > 0){
+        var tempObj = {};
+        $.each(tempUser[0].rows,function(index,item){
+          item.avatar = item.icon?'data:image/jpeg;base64,'+item.icon:window.rsContextPath + '/images/avatar/1.png';
+          item.status = item.online?'online':'offline';
+          item.username = item.name;
+          if(item.id === CURRENT_USER_ID){
+            window.localStorage.setItem('currentUserAvatar',item.avatar);
+            mine.avatar = window.localStorage.getItem('currentUserAvatar');
+            return;
+          }
+          if(!tempObj[item.groupName]){
+            tempObj[item.groupName] = [];
+          }
+          if(item.status === 'online'){
+            tempObj[item.groupName].unshift(item);
+          }else{
+            tempObj[item.groupName].push(item);
+          }
+        })
+        for(var key in tempObj){
+          if(tempObj.hasOwnProperty(key)){
+            var temp = {};
+            temp.groupname = key;
+            temp.id = parseInt(Math.random() * 10000000);
+            temp.list = tempObj[key];
+            tempArr.push(temp);
+          }
+        }
+      }
+      return tempArr;
+    }
+
+    //创建/编辑讨论组时，生成用户列表
+    function createUserList(arr){
+      var $ul = $('<ul class="imuser-list"></ul>');
+      $.each(arr,function(index,item){
+        var $li = $('<li class="user-item"></li>');
+        var $input = $('<input type="checkbox" name="actor" id="newTopic'+item.id+'" data-id="'+item.id+'">');
+        var $label = $('<label for="newTopic'+item.id+'">'+item.name+'</label>')
+        if(item.checked){
+          $input.attr('checked',true);
+        }
+        $li.append($input).append($label).appendTo($ul);
+        
+      });
+      return $ul[0];
+    }
+
+    //删除讨论组
+    function deleteTopic(layer,layim,key,groups){
+      layer.confirm('确认删除讨论组：' + groups[key].groupname, {icon: 3, title:'提示'}, function(index){
+        layer.close(index);
+        var ids = [groups[key].id];
+        rs.im.deleteTopic({
+          ids:ids,
+        }).done(function(){
+          layim.removeList({
+            type: 'group',
+            id: ids[0]
+          });
+          layer.msg('删除成功',{icon:1,time:2000});
+        })
+        
+      });
+    }
+
+    //创建或编辑讨论组
+    function addOrEditTopic(layer,layim,userList,type,key,groups){
+      var html,imUrl,imMethod,title,groupname,msg;
+      html = createUserList(userList);
+      if(type === 'add'){
+        imUrl = '/im/topic';
+        imMethod = 'POST';
+        title = '创建讨论组';
+        msg = '讨论组创建成功';
+        groupname = '';
+      }else if(type === 'edit'){
+        imUrl = '/im/topic/'+groups[key].id;
+        imMethod = 'PUT';
+        groupname = groups[key].groupname;
+        title = '更新讨论组';
+        msg = '讨论组更新成功';
+      }
+      
+      layer.open({
+        title:title,
+        area:['500px','300px'],
+        content:'<form class="new-topic-info"><div class="form-item clearfix"><label class="layui-form-label" style="width:120px;">讨论组名称：</label><div class="layui-input-block " style="margin-left:120px;"><input type="text" id="topicName" name="name" required  lay-verify="required" placeholder="请输入讨论组名称" autocomplete="off" class="layui-input" ></div></div><div class="imuser-actor"><h3>选择讨论组成员</h3></div></form>',
+        zIndex:900,
+        success:function(layero){
+          layero.find('.imuser-actor').append(html);
+          $('#topicName').val(groupname);
+          $('.layui-layer-shade').css('zIndex',900)
+          layero.css('zIndex',901);
+        },
+        yes:function(index,layero){
+          var name = $('#topicName').val();
+          var actor = [];
+          if(name === ''){
+             rs.util.messageError('输入讨论组名称');
+             return false;
+          }
+          var $imTopicActors = layero.find('.imuser-list').find('input');
+          $imTopicActors.each(function(index,item){
+            var $item = $(item);
+            if($item.prop('checked')){
+              actor.push($item.attr('data-id'));
+            }
+          })
+          if(actor.length < 2){
+            rs.util.messageError('请至少选择两个讨论组成员');
+             return false;
+          }
+          actor.unshift(CURRENT_USER_ID);
+          var formData = {
+            name:name,
+            actor:actor.join(',')
+          }
+         rs.http.ajax({
+            url: imUrl,
+            method:imMethod,
+            data:JSON.stringify(formData),
+            contentType: 'application/json; charset=UTF-8',
+            success:function(res){
+              layer.msg(msg,{icon:1,time:2000});
+              if(type === 'add'){
+                layim.addList({
+                  type: 'group',
+                  avatar: window.rsContextPath + '/images/avatar/1.jpg',
+                  groupname: formData.name,
+                  id: res.id
+                })
+              }
+            }
+          })
+        }
+      })
+    }
+
+    //获取用户未读消息记录并渲染
+    function fetchFriendUnreadMessage(layim,rsUserInfo){
+      rs.im.getUserUnread({
+        data:{
+          current:1,
+          size:20,
+        }
+      }).done(function(res){
+        if(res && res.total > 0){
+          for(var i = res.rows.length;i > 0;i--){
+            var type = 'friend',item = res.rows[i-1];
+            layim.getMessage({
+              username:rsUserInfo[item.sender].name,
+              avatar:rsUserInfo[item.sender].avatar,
+              id:item.sender,
+              type: type,
+              content:item.content,
+              mine:false,
+              fromid:item.sender,
+              timestamp:item.sendTime
+            })
+          }
+        }
+      })
+    }
+
+    //获取群组未读消息记录并渲染
+    function fetchGroupUnreadMessage(layim,rsGroupInfo,rsUserInfo){
+      for(var key in rsGroupInfo){
+        if(rsGroupInfo.hasOwnProperty(key)){
+          rs.im.getGroupUnread({data:{current:1,size:20},oppoUserId:key}).done(function(res){
+          if(res && res.total > 0){
+            for(var i = res.rows.length;i > 0;i--){
+              var type = 'group',item = res.rows[i-1];
+              layim.getMessage({
+                username:rsUserInfo[item.sender].name,
+                groupname:rsGroupInfo[item.recver].name,
+                avatar:rsGroupInfo[item.recver].avatar,
+                id:item.recver,
+                type: type,
+                content:item.content,
+                mine:false,
+                fromid:item.sender,
+                timestamp:item.sendTime
+              })
+            }
+          }
+        })
+        }
+      }
+    }
+
+    //对象深拷贝
+    function objDeepCopy(obj){
+      return JSON.parse(JSON.stringify(obj));
+    }
+  })(window,jQuery);
+  </script>
+</body>
+</html>

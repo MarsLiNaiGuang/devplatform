@@ -1,0 +1,347 @@
+<#assign base=request.contextPath />
+<!-- 数据表格 -->
+<table id="dgUser"
+       class="easyui-datagrid"
+       url="${base}/admin/user/list"
+       method="POST" toolbar="#usersToolbar"
+       pagination="true" rownumbers="true"
+       fitColumns="true"
+       singleSelect="false"
+       fit="true"
+       data-options="onBeforeLoad:function (param) {
+          var searchParam = rs.util.getSearchParam('searchFormUser'); 
+          $.extend(param, searchParam);
+        }">
+  <thead>
+    <tr>
+      <th data-options="field:'ck',checkbox:true"></th>
+      <th field="name" width="200" halign="center">用户名</th>
+      <th field="nkname" width="200" halign="center">昵 称</th>
+      <th field="email" width="300" halign="center">电子邮箱</th>
+      <th field="tel" width="200" halign="center">电 话</th>
+      <th field="opt" width="200" halign="center" data-options="formatter: rs.dev.user.formatOper">操 作</th>
+    </tr>
+  </thead>
+</table>
+<!-- 用户功能栏 -->
+<div id="usersToolbar" style="overflow: hidden;margin-bottom: 15px;">
+  <div class="rs-datagrid-toolbar" style="background:transparent;float:left;">
+    <div class="btn-group" style="border-radiu:4px;padding:1px;">
+      <button class="glyphicon-plus" aria-hidden="true" onclick="rs.dev.user.add()" id="addMenuBtn" style="margin-left: 10px;">新增</button>
+      <button class="glyphicon-trash" aria-hidden="true" onclick="rs.dev.user.deleteBatch()">批量删除</button>
+      <button class="glyphicon-search" aria-hidden="true" onclick="rs.dev.user.query()">查询</button>
+      <button class="glyphicon-refresh" aria-hidden="true" onclick="rs.dev.user.reset()">重置</button>
+      <button class="glyphicon-saved" aria-hidden="true" onclick="rs.dev.user.sync()">
+        同步用户到即时通讯
+      </button>
+    </div>
+    <form style="float:right;overflow: hidden;margin: 2px 0px 0px 40px;" id="searchFormUser" method="post" class="form-inline">
+      <div class="form-group" style="float:left;margin-right: 20px;">
+        <div class="input-group">
+          <div class="input-group-addon" style="cursor: pointer;">昵称</div>
+          <input type="text"
+                 id="usersToolbar_userNkname"
+                 name="nkname"
+                 id="usersToolbar_userNkname"
+                 class="form-control"
+                 style="border-radius: 2px;height: 30px;width: 150px;"
+                 placeholder="请输入昵称" oninput="rs.dev.user.queryUserData(this.value)">
+        </div>
+      </div>
+      <div class="form-group" style="float:left;">
+        <div class="input-group">
+          <div class="input-group-addon" style="cursor: pointer;">用户名</div>
+          <input type="text" class="form-control"
+                 name="name"
+                 id="usersToolbar_userName"
+                 style="border-radius: 2px;height: 30px;width: 150px;"
+                 placeholder="请输入用户名" oninput="rs.dev.user.queryUserData(this.value)">
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- 新增用户弹出表单 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="dlgUser">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content" style="border-radius:4px;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+        <h4 class="modal-title">新增</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmUser" method="post" class="form-horizontal">
+          <div>
+            <label for="UserId">ID：</label>
+            <div><input name="id" class="easyui-textbox" placeholder="ID"></div>
+          </div>
+          <div>
+            <label for="UserName">用户名：</label>
+            <div>
+              <input name="name" class="easyui-textbox" required="true" placeholder="Name">
+            </div>
+          </div>
+          <div>
+            <label for="UserNkname">昵称：</label>
+            <div>
+              <input name="nkname" class="easyui-textbox" id="UserNkname" placeholder="昵称">
+            </div>
+          </div>
+          <div>
+            <label for="UserPwd">密码：</label>
+            <div>
+              <input name="pwd"
+                     class="easyui-textbox"
+                     type="password"
+                     required="true"
+                     validType="length[6,50]"
+                     id="UserPwd"
+                     placeholder="密码">
+            </div>
+          </div>
+          <div>
+            <label for="UserPwdConfirm">密码确认：</label>
+            <div>
+              <input type="password" name="pwdConfirm" class="easyui-textbox" required="true" validType="length[6,50]" id="UserPwdConfirm"
+                     placeholder="密码确认">
+            </div>
+          </div>
+          <div>
+            <label for="UserEmail">电子邮箱：</label>
+            <div>
+              <input name="email" class="easyui-textbox" required="true" validType="email" id="UserEmail"
+                     placeholder="电子邮箱">
+            </div>
+          </div>
+          <div>
+            <label for="UserPhone">电话：</label>
+            <div>
+              <input name="tel" class="easyui-textbox" id="UserPhone" placeholder="电话">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="dlgMenuButtons">
+        <button class="btn btn-primary" onclick="rs.dev.user.save(this)">保存</button>
+        <button class="btn btn-default" data-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<script>
+    //由于class都是同样的代码,可以通过js一次性添加bootstrap样式
+    (function($){
+        //新增表单添加bootstrap样式类
+        var $fmUser = $('#fmUser'),
+            $fmUserFormGroup = $('#fmUser>div'),
+            $fmUserInput = $fmUserFormGroup.find('input'),
+            $fmUserLabel = $fmUserFormGroup.find('label'),
+            $fmUser_div_div = $('#fmUser>div>div');
+
+        $fmUserFormGroup.addClass('form-group');
+        $fmUserInput.addClass('form-control');
+        $fmUserLabel.addClass('col-sm-2 control-label');
+        $fmUser_div_div.addClass('col-sm-10');
+        $fmUser.find('input').css({'marginRight':'20px','borderRadius':'2px'});
+        $fmUser.find('div.form-group').css({'marginRight':'10px'});
+
+        //用户功能栏添加按钮bootstrap类
+        var $usersToolbar_button = $('#usersToolbar').find('button');
+        $usersToolbar_button.addClass('btn btn-info rsutiltree glyphicon').css('background','#1f88be');
+
+        // 用户功能栏下面的搜索框加圆角
+        $('#searchFormUser .input-group-addon').css({'border-radius':' 3px 0px 0px 3px',borderRight:'none'});
+
+    })(jQuery)
+
+    rs.dev.user = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var urlUser = '/admin/user',
+      dgIdUser = 'dgUser',
+      fmIdUser = 'fmUser',
+      dlgIdUser = 'dlgUser',
+      usersToolbarId = 'usersToolbar',
+      userVideMode, methodUser, optArray = [];
+  rs.util.mapTabTitleDialogId([dlgIdUser]);
+
+  //添加用户
+  function addUser() {
+    $('#'+dlgIdUser).modal('show');
+    $('h4', $('#'+dlgIdUser)).text('新增');
+    $('#' + fmIdUser).form('reset');
+    urlUser = '/admin/user';
+    methodUser = 'POST';
+    userVideMode = rs.constant.VIEWMODE_ADD;
+  }
+
+  //保存用户
+  function saveUser(button) {
+    if ($('#' + fmIdUser).form('validate')) { //重置表单数据
+      $(button).attr('disabled',"true");
+      var formData = rs.util.formGetData(fmIdUser); //获取当前用户的数据序列化
+      var msg;
+      if (userVideMode === rs.constant.VIEWMODE_ADD) {//2
+        msg = '创建成功';
+      } else if (userVideMode === rs.constant.VIEWMODE_EDIT) {//3
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlUser,
+        method: methodUser,
+        data: formData,
+        success: function(result) {
+          if (!result.errorMsg) {
+              rs.util.messageInfo(msg);
+              $('#'+dlgIdUser).modal('hide');
+              $('#' + dgIdUser).datagrid('reload'); // 更新用户数据列表
+          } else {
+              rs.util.messageError(result.errorMsg);
+          }
+        }
+      }).always(function() {
+        $(button).removeAttr('disabled',"true");
+      });
+    }
+  }
+
+  //批量删除用户
+  function deleteUserBatch() {
+    var rows = $('#' + dgIdUser).datagrid('getSelections');//选中的要删除的用户集合
+    if (rows && rows.length > 0) {
+      rs.util.messageConfirm('确认批量删除用户？', '提醒', function() {
+        var param = []; //需要删除的用户id集合
+        $.each(rows, function(index, row) {
+          param.push(row.id);
+        });
+        urlUser = '/admin/user';
+        methodUser = 'DELETE';
+        rs.http.ajaxJson({
+          url: urlUser,
+          method: methodUser,
+          data: param,
+          success: function(result) {
+            if (result.error) {
+              rs.util.messageError(result.error);
+            } else {
+              rs.util.messageInfo("删除成功");
+              $('#' + dgIdUser).datagrid('reload'); // 批量删除用户之后重新加载用户列表
+            }
+          }
+        });
+      });
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  //返回两个按钮,修改/删除
+  function formatOper(val, row, index) {
+    return '<b style="display:block;margin:4px auto;" id="userEditBtn" class="btn btn-info btn-xs" onclick="rs.dev.user.edit('+index+')">修改</b> ' +
+        '<b style="display:block;margin:4px auto;" class="btn btn-info btn-xs" onclick="rs.dev.user.delete('+index+')">刪除</b>';
+  }
+
+  //编辑用户数据
+  function clickEditUsers(index) {
+    $('button#addMenuBtn').trigger('click');  //去掉这行代码,需要先点击一次新增按钮才能将新增表单样式加进去
+    $('#' + dgIdUser).datagrid('unselectAll');  //取消选择所有行
+    $('#' + dgIdUser).datagrid('selectRow', index); // 关键在这里,当前选择行
+    var row = $('#' + dgIdUser).datagrid('getSelected');//获取当前选择的数据
+    if (row) {
+      // $('#' + dlgIdUser).dialog('open').dialog('setTitle', '修改用户');
+      $('#'+dlgIdUser).modal('show');
+      $('h4', $('#'+dlgIdUser)).text('修改');
+      $('#' + fmIdUser).form('load', row);
+      urlUser = '/admin/user/' + row.id;
+      methodUser = 'PUT';
+      userVideMode = rs.constant.VIEWMODE_EDIT;
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  //点击删除用户信息
+  function clickDeleteUers(index) {
+    $('#' + dgIdUser).datagrid('unselectAll'); //未选中的信息
+    $('#' + dgIdUser).datagrid('selectRow', index); // 关键在这里
+    var row = $('#' + dgIdUser).datagrid('getSelected'); // 选中数据
+    var rowId = row.id;
+    if (row) {
+      rs.util.messageConfirm('确认删除用户' + row.name + '？', '提醒', function() {
+        urlUser = '/admin/user';
+        methodUser = 'DELETE';
+        rs.http.ajaxJson({
+          url: urlUser,
+          method: methodUser,
+          data: [rowId],
+          success: function(result) {
+            if (!result.error) {
+                rs.util.messageInfo("删除成功");
+                $('#' + dgIdUser).datagrid('reload'); // 重新加载用户列表数据
+            } else {
+                rs.util.messageError(result.error);
+            }
+          }
+        });
+      });
+    } else {
+      rs.util.messageWarning(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  //用户数据同步到数据库
+  function usersSync() {
+    rs.http.ajaxJson({
+      url: '/im/login/sync',
+      method: 'POST',
+      data: {}
+    }).done(function() {
+      rs.util.messageInfo('用户同步成功');
+    });
+  }
+
+
+  //设置新增表单样式
+  function setTextBoxFun(){
+      var $setTextBox = $('#fmUser div>input').siblings('span'),
+          $textBoxHeight = '34px';
+      $setTextBox.css({width:'100%',height:$textBoxHeight,borderRadius:'2px'});
+      $setTextBox.find('input').css({height:'100%',width:'100%'});
+      $setTextBox.find('span>a').css({height:$textBoxHeight});
+      return false;
+  }
+  $('button#addMenuBtn').on('click',setTextBoxFun);
+
+  //敲回车键进行查询用户数据返回
+  function queryUserData(Val){
+      if(Val !== '') {
+        $(document).on('keydown',function(e) {
+            if(e.keyCode === 13) rs.dev.user.query();
+        })
+      }
+      return;
+  }
+
+  //向外暴露方法
+  return {
+    add: addUser,
+    edit: clickEditUsers,
+    delete: clickDeleteUers,
+    deleteBatch: deleteUserBatch,
+    save: saveUser,
+    formatOper: formatOper,
+    sync: usersSync,
+    queryUserData:queryUserData,
+    setTextBoxFun:setTextBoxFun
+  }
+
+
+})(jQuery));
+
+</script>

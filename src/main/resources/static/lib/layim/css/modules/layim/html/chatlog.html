@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>聊天记录</title>
+
+<style>
+.layim-chat-main{min-height: 93.8%;}
+html,body{
+  height: 100%;
+  overflow-y: hidden;
+  margin: 0;
+}
+#LAY_view{
+  margin: 0;
+  padding: 0;
+}
+#LAY_page{
+  background:#f6f6f6;
+  margin: 0 10px;
+}
+#LAY_page .current{
+  display: inline-block;
+  width: 23px;
+  height: 23px;
+  line-height: 23px;
+  text-align: center;
+  background:#fff;
+  border:1px solid #f6f6f6;
+}
+</style>
+</head>
+<body>
+
+<div class="layim-chat-main">
+  <ul id="LAY_view"></ul>
+</div>
+
+<div id="LAY_page" style="margin: 0 10px;">
+  <button class="layui-btn" id="prev">上一页</button>
+  <span class="current" id="currentPage"></span>
+  <button class="layui-btn" id="next"> 下一页</button>
+</div>
+
+
+<textarea title="消息模版" id="LAY_tpl" style="display:none;">
+{{# layui.each(d.data, function(index, item){
+  if(item.id == parent.layui.layim.cache().mine.id){ }}
+    <li class="layim-chat-mine"><div class="layim-chat-user"><img src="{{ item.avatar }}"><cite><i>{{ layui.data.date(item.timestamp) }}</i>{{ item.username }}</cite></div><div class="layim-chat-text">{{ layui.layim.content(item.content) }}</div></li>
+  {{# } else { }}
+    <li><div class="layim-chat-user"><img src="{{ item.avatar }}"><cite>{{ item.username }}<i>{{ layui.data.date(item.timestamp) }}</i></cite></div><div class="layim-chat-text">{{ layui.layim.content(item.content) }}</div></li>
+  {{# }
+}); }}
+</textarea>
+
+<!-- 
+上述模版采用了 laytpl 语法，不了解的同学可以去看下文档：http://www.layui.com/doc/modules/laytpl.html
+
+-->
+
+<script src="../../../../layui.js"></script>
+<script>
+//获取传递过来的参数
+
+var formData = {
+    current:1,
+    size:10
+  }
+function getSerachParams(param,name){
+  var tempParam = {};
+  var reg = new RegExp("(^|&)"+name+"=([^&]*)(&|$)");
+    var r = param.substr(1).match(reg);
+    if(r!=null)
+        return unescape(r[2]);
+    return null;
+}
+
+//抓取历史记录数据
+
+function fetchLogHis(url){
+  return window.parent.rs.http.postJson({
+    url:url,
+    data:formData
+  })
+}
+function renderLogHis(layer,laytpl,$,url){
+  fetchLogHis(url).done(function(res){
+    if(res && res.total > 0){
+      //var tempList = [];
+      $.each(res.rows,function(index,item){
+        item.id = item.sender;
+        item.username = window.localStorage.getItem('username');
+        // item.groupname = groupInfo[item.sender];
+        item.timestamp = item.sendTime;
+        item.avatar = item.sendericon;
+      });
+      var html = laytpl(LAY_tpl.value).render({
+        data: res.rows
+      });
+      $('#LAY_view').html(html);
+      $('#currentPage').html(formData.current);
+    }else{
+      layer.msg('暂无更多聊天记录',{icon:2,time:2000});
+      formData.current--;
+    }
+  })
+}
+layui.use(['layim','layer','laytpl'], function(){
+
+  var layim = layui.layim
+  ,layer = layui.layer
+  ,laytpl = layui.laytpl
+  ,$ = layui.jquery;
+  var param = {};
+  param.id = getSerachParams(location.search,'id');
+  param.type = getSerachParams(location.search,'type');
+  var beginTime = new Date(2017, 0, 1).getTime(),
+  endTime = new Date().getTime(),url;
+  if(param.type === 'friend'){
+    url = '/im/log/userhis/' + param.id + '/' + beginTime + '/' + endTime;
+  }else if(param.type === 'group'){
+    url = '/im/log/grouphis/' + param.id + '/' + beginTime + '/' + endTime;
+  }
+  renderLogHis(layer,laytpl,$,url);
+  
+  
+
+  //分页点击事件
+  $('#prev').on('click',function(){
+    if(formData.current === 1){
+      layer.msg('已经是第一页',{icon:2,time:2000})
+    }else{
+      formData.current--;
+      renderLogHis(layer,laytpl,$,url);
+    }
+  })
+
+  $('#next').on('click',function(){
+    formData.current++;
+    renderLogHis(layer,laytpl,$,url);
+  })
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1523 @@
+<#assign base=request.contextPath />
+<!-- DataGrid -->
+<table id="dgForm" class="easyui-datagrid" url="${base}/cg/form/list" method="POST" pagination="true" rownumbers="true" fitColumns="true" singleSelect="true" fit="true" toolbar="#formListToolbar" data-options="onBeforeLoad: function (param) {
+  var searchParam = rs.util.getSearchParam('searchFormFormList'); 
+  $.extend(param, searchParam);
+}">
+  <thead>
+    <tr>
+      <th field="id" hidden="true">ID</th>
+      <th field="tabletype" width="100" halign="center" data-options="
+        formatter: function(value) {
+          switch(value) {
+            case 1:
+              return '单表';
+            case 2:
+              return '主表';
+            case 3:
+              return '附表';
+            default:
+              return value;
+          }
+        }
+      ">表类型</th>
+      <th field="fcflag" width="150" halign="center">功能编码</th>
+      <th field="tablename" width="150" halign="center">功能表名</th>
+      <th field="tabledescp" width="250" halign="center">功能描述</th>
+      <th field="version" width="100" halign="center">版本</th>
+    </tr>
+  </thead>
+</table>
+<!-- toobar -->
+<div id="formListToolbar">
+  <div class="rs-datagrid-toolbar">
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.addForm()">
+        <span class="rsutiltree glyphicon glyphicon-plus" aria-hidden="true"> 创建表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.editForm()">
+        <span class="rsutiltree glyphicon glyphicon-edit" aria-hidden="true"> 编辑表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.deleteForm()">
+        <span class="rsutiltree glyphicon glyphicon-trash" aria-hidden="true"> 删除表单</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.addCustb()">
+        <span class="rsutiltree glyphicon glyphicon-asterisk" aria-hidden="true"> 自定义按钮</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.addJs()">
+        <span class="rsutiltree glyphicon glyphicon-asterisk" aria-hidden="true"> JS增强</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.addSql()">
+        <span class="rsutiltree glyphicon glyphicon-asterisk" aria-hidden="true"> sql增强</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.clickTestForm()">
+        <span class="rsutiltree glyphicon glyphicon-home" aria-hidden="true"> 功能测试</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.popMenuAddressWindow()">
+        <span class="rsutiltree glyphicon glyphicon-zoom-in" aria-hidden="true"> 配置地址</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.query()">
+        <span class="rsutiltree glyphicon glyphicon-search" aria-hidden="true"> 查询</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="rs.dev.formlist.reset()">
+        <span class="rsutiltree glyphicon glyphicon-refresh" aria-hidden="true"> 重置</span>
+      </button>
+    </div>
+  </div>
+
+  <form id="searchFormFormList" method="post" class="form-inline">
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label>表类型：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="tabletype" data-options="value:'', textField: 'text', valueField: 'value', data: [{value: '', text: '&nbsp'}, {value: 1, text: '单表'},{value: 2, text: '主表'},{value: 3, text: '附表'}]">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label>功能编码：</label>
+      <input class="easyui-textbox inputxt" name="fcflag">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label>功能表名：</label>
+      <input class="easyui-textbox inputxt" name="tablename" data-options="onChange: function(newValue,oldValue){
+        $(this).textbox('setValue', newValue.toLowerCase());
+      }">
+    </div>
+  </form>
+</div>
+<!-- Dialog -->
+<div id="dlgForm" class="easyui-dialog" style="width:1024px;height:560px;" closed="true" data-options="modal:true, buttons:[{
+  text: '保存',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.formlist.saveForm(this);
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgForm').dialog('close');
+  } 
+}]">
+  <form id="formForm" method="post" class="form-inline" novalidate>
+    <div hidden="true">
+      <input name="id" class="easyui-textbox">
+      <input name="version" class="easyui-textbox">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">功能编码：</label>
+      <input id="inputFormFcflag" class="easyui-textbox inputxt" name="fcflag" required="true" tipPosition="top"><span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">功能表名：</label>
+      <input id="inputFormTableName" class="easyui-textbox inputxt" name="tablename" required="true" tipPosition="top" data-options="onChange:function(newValue){
+            $(this).textbox('setValue', newValue.toLowerCase());
+          }"><span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">功能描述：</label>
+      <input class="easyui-textbox inputxt" name="tabledescp" required="true" tipPosition="top"><span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">功能类型：</label>
+      <input id = "buildTableType" class="easyui-combobox" editable="false" panelHeight="auto" name="type" data-options="textField: 'text', valueField: 'value', value: 'manual', data: [{text: '手动', value: 'manual'},{text:'SQL解析', value: 'auto'}], onSelect: rs.dev.formlist.buildTableTypeChange">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">表类型：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="tabletype" required="true" data-options="textField: 'text', valueField: 'value', data: [{text: '单表', value: 1},{text: '主表', value: 2},{text: '附表', value: 3}],value:1,onSelect:rs.dev.formlist.TableLXChange">
+      <span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">主键策略：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="pktype" data-options="textField: 'text', valueField: 'value', value: 'UUID', data: [{text: 'UUID:32位唯一编码', value: 'UUID'}]">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">显示复选框：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="multiselect" data-options="textField: 'text', valueField:'value', data:[{value:'N', text:'否'},{value:'Y', text: '是'}], value: 'N'">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">是否分页：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="ispage" data-options="textField: 'text', valueField:'value', data:[{value:'N', text:'否'},{value:'Y', text: '是'}], value: 'Y'">
+    </div>
+    <div class="form-group" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">是否树：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="istree" data-options="textField: 'text', valueField:'value', data:[{value:'N', text:'否'},{value:'Y', text: '是'}], value: 'N', onSelect:rs.dev.formlist.TreeValueChange">
+    </div>
+    <div class="form-group" id="div-fidColumn" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">父字段：</label>
+      <input id="fidColumn" class="easyui-textbox inputxt" name="parent" required="true" tipPosition="top" data-options="onChange: function(newValue,oldValue){
+      if($.trim(newValue)!='')
+      $(this).textbox('setValue', newValue.toUpperCase());}"><span class="Validform_checktip"></span>
+    </div>
+    <div class="form-group" id="div-nodeColumn" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">折叠字段：</label>
+      <input id="nodeColumn" class="easyui-textbox inputxt" name="child" required="true" tipPosition="top" data-options="onChange: function(newValue,oldValue){
+      if($.trim(newValue)!='')
+      $(this).textbox('setValue', newValue.toUpperCase());}"><span class="Validform_checktip"></span>
+    </div>
+    <div id="div-input-sql" style="padding: 3px 0 3px 16px;">
+      <label class="Validform_label" style="width:72px">SQL：</label>
+      <input id="inputFormSql" class="easyui-textbox inputxt" name="sql" required="true" data-options="multiline:true,buttonText:'解析sql', onClickButton: rs.dev.formlist.parseSql" style="height: 80px; width: 880px">
+    </div>
+  </form>
+  <!-- DataGrid -->
+  <div id="tabsForm" class="easyui-tabs">
+    <div title="页面属性" style="padding:10px">
+      <table id="dgFormDetailPage" class="easyui-datagrid" rownumbers="true" style="width:auto;height:330px;" data-options="singleSelect: false, checkOnSelect: false, toolbar: [
+          {
+            text: '添加字段',
+            iconCls: 'rsutiltree glyphicon glyphicon-plus',
+            handler: function(){
+              rs.dev.formlist.formAddTableField();
+            }
+          },{
+            text: '自动创建',
+            iconCls: 'rsutiltree glyphicon glyphicon-list-alt',
+            handler: function(){
+              rs.dev.formlist.autoGetColumns();
+            }
+          },{
+            text: '删除字段',
+            iconCls: 'rsutiltree glyphicon glyphicon-trash',
+            handler: function(){
+              rs.dev.formlist.formDeleteTableField();
+            }
+          },{
+            text: '拖拽模式开关',
+            iconCls: 'rsutiltree glyphicon glyphicon-lock',
+            handler: function(){
+              rs.dev.formlist.formEnableDnd();
+            }
+          }
+        ],
+
+        onLoadSuccess: function(){
+          $(this).datagrid('enableDnd');
+          var rows = $(this).datagrid('getData').rows;
+          $.each(rows, function(index, row){
+            row.colName = row.colName.toUpperCase();
+          })
+        },
+
+        onBeforeDrag: function() {
+          return false;
+        },
+
+        onEndEdit: function(index, row) {
+          var editorSearch = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'searchType'
+          });
+          if (editorSearch && editorSearch.target) {
+            row.searchTypeText = $(editorSearch.target).combobox('getText');
+          }
+          var editorInput = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'inputType'
+          });
+          if (editorInput && editorInput.target) {
+            row.inputTypeText = $(editorInput.target).combobox('getText');
+          }
+
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colType'
+          });
+          if (editor && editor.target) {
+            row.colTypeText = $(editor.target).combobox('getText');
+          }
+        },
+        onBeginEdit: function(index){
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colName'
+          });
+
+          $(editor.target).textbox({
+            onChange: function(newValue){
+              $(this).textbox('setValue', newValue.toUpperCase());
+            }
+          })
+        }">
+        <thead>
+          <tr>
+            <th data-options="field:'ck',checkbox:true"></th>
+            <th data-options="field:'colName',width:100, editor:'textbox'">字段名称</th>
+            <th data-options="field:'alias',width:80, editor:'textbox'">字段别名</th>
+            <th data-options="field:'colMark',width:100, editor:'textbox'">字段备注</th>
+            <th data-options="field:'isFormdisp',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">表单显示</th>
+            <th data-options="field:'isGriddisp',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">列表显示</th>
+            <th data-options="field:'colType',width:80,
+              formatter: function(value,row) {
+                return row.colTypeText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                editable: false,
+                panelHeight: 'auto',
+                valueField:'colType',
+                textField:'col_type_text',
+                data: [{
+                  colType: 'string',
+                  col_type_text: 'String'
+                },{
+                  colType: 'int',
+                  col_type_text: 'Integer'
+                },{
+                  colType: 'double',
+                  col_type_text: 'Double'
+                },{
+                  colType: 'date',
+                  col_type_text: 'Date'
+                },{
+                  colType: 'datetime',
+                  col_type_text: 'Datetime'
+                },{
+                  colType: 'decimal',
+                  col_type_text: 'Decimal'
+                },{
+                  colType: 'text',
+                  col_type_text: 'Text'
+                },{
+                  colType: 'blob',
+                  col_type_text: 'Blob'
+                }]
+              }
+            }">字段类型</th>
+            <th data-options="field:'inputType',width:150,
+              formatter: function(value,row) {
+                return row.inputTypeText;
+              },
+              editor: {
+                type:'combobox',
+                options: {
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField:'value',
+                  textField:'text',
+                  data: [{
+                    value: 'text',
+                    text: '文本框'
+                  },{
+                    value: 'multiText',
+                    text: '多行文本框'
+                  },{
+                    value: 'password',
+                    text: '密码'
+                  },{
+                    value: 'radio',
+                    text: '单选框'
+                  },{
+                    value: 'checkbox',
+                    text: '多选框'
+                  },{
+                    value: 'list',
+                    text: '下拉框'
+                  },{
+                    value: 'date',
+                    text: '日期(yyyy-MM-dd)'
+                  },{
+                    value: 'datetime',
+                    text: '日期(yyyy-MM-dd HH:mm:ss)'
+                  },{
+                    value: 'combotree',
+                    text: '树结构'
+                  }]
+                }
+              }
+            ">控件类型</th>
+            <th data-options="field:'inputLen',width:60,align:'right',editor:'numberbox'">控件长度</th>
+            <th data-options="field:'isSearch',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">允许查询</th>
+            <th data-options="field:'searchType',width:80,
+              formatter: function(value,row) {
+                return row.searchTypeText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField:'value',
+                  textField:'text',
+                  data: [{
+                    value: 'normal',
+                    text: '普通查询'
+                  },{
+                    value: 'range',
+                    text: '范围查询'
+                  },{
+                    value: 'fuzzy',
+                    text:'模糊查询' 
+                  }]
+                }
+              }
+            ">查询类型</th>
+            <th data-options="field:'colIsnull',width:60,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">允许空值</th>
+            <!-- <th data-options="field:'extjson',width:100,editor:'textbox'">扩展参数</th> -->
+          </tr>
+        </thead>
+      </table>
+    </div>
+    <div title="校验字典" style="padding:10px">
+      <table id="dgFormDetailDict" class="easyui-datagrid" rownumbers="false" style="width:auto;height:330px;" data-options="onBeforeSelect: function(){return false;}">
+        <thead>
+          <tr>
+            <th data-options="field:'colName',width:80">字段名称</th>
+            <th data-options="field:'alias',width:80">字段别名</th>
+            <th data-options="field:'colMark',width:100">字段备注</th>
+            <th data-options="field:'colHref',width:100,editor:'textbox'">字段超链接</th>
+            <th data-options="field:'validType',width:100,editor:'textbox'">字段验证类型</th>
+            <th data-options="field:'dictTable',width:100,editor:'textbox'">字典表名</th>
+            <th data-options="field:'dictCode',width:100,editor:'textbox'">字典字段</th>
+            <th data-options="field:'dictText',width:100,editor:'textbox'">字典文本</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+    <div title="条件字段" style="padding:10px">
+      <table id="dgFormSearchColumns" class="easyui-datagrid" rownumbers="false" style="width:auto;height:330px;" data-options="onBeforeSelect: function(){return false;},        
+      onEndEdit: function(index, row) {
+          var editor = $(this).datagrid('getEditor', {
+            index: index,
+            field: 'colType'
+          });
+          if (editor && editor.target) {
+            row.colTypeText = $(editor.target).combobox('getText');
+          }
+        },">
+        <thead>
+          <tr>
+            <th data-options="field:'colName',width:100">条件变量名</th>
+            <th data-options="field:'colMark',width:100,editor:'textbox'">字段备注</th>
+            <th data-options="field:'expr',width:200,editor:'textbox'">条件表达式</th>
+            <th data-options="field:'issearch',width:100,align:'center',editor:{type:'checkbox',options:{on:'Y',off:'N'}}, formatter: rs.util.formatterBoolean">是否作为查询条件</th>
+            <th data-options="field:'searchType',width:100,
+              formatter: function(value,row) {
+                return row.searchTypeText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField:'value',
+                  textField:'text',
+                  data: [{
+                    value: 'normal',
+                    text: '普通查询'
+                  },{
+                    value: 'range',
+                    text: '范围查询'
+                  },{
+                    value: 'fuzzy',
+                    text:'模糊查询' 
+                  }]
+                }
+              }
+            ">查询类型</th>
+            <th data-options="field:'colType',width:80,
+              formatter: function(value,row) {
+                return row.colTypeText;
+              },
+              editor:{
+                type:'combobox',
+                options:{
+                editable: false,
+                panelHeight: 'auto',
+                valueField:'colType',
+                textField:'col_type_text',
+                data: [{
+                  colType: 'string',
+                  col_type_text: 'String'
+                },{
+                  colType: 'int',
+                  col_type_text: 'Integer'
+                },{
+                  colType: 'double',
+                  col_type_text: 'Double'
+                },{
+                  colType: 'date',
+                  col_type_text: 'Date'
+                },{
+                  colType: 'datetime',
+                  col_type_text: 'Datetime'
+                },{
+                  colType: 'decimal',
+                  col_type_text: 'Decimal'
+                },{
+                  colType: 'text',
+                  col_type_text: 'Text'
+                },{
+                  colType: 'blob',
+                  col_type_text: 'Blob'
+                }]
+              }
+            }">字段类型</th>
+            <th data-options="field:'inputType',width:200,
+              formatter: function(value,row) {
+                return row.inputTypeText;
+              },
+              editor: {
+                type:'combobox',
+                options: {
+                  editable: false,
+                  panelHeight: 'auto',
+                  valueField:'value',
+                  textField:'text',
+                  data: [{
+                    value: 'text',
+                    text: '文本框'
+                  },{
+                    value: 'multiText',
+                    text: '多行文本框'
+                  },{
+                    value: 'password',
+                    text: '密码'
+                  },{
+                    value: 'radio',
+                    text: '单选框'
+                  },{
+                    value: 'checkbox',
+                    text: '多选框'
+                  },{
+                    value: 'list',
+                    text: '下拉框'
+                  },{
+                    value: 'date',
+                    text: '日期（yyyy-MM-dd）'
+                  },{
+                    value: 'datetime',
+                    text: '日期（yyyy-MM-dd HH:mm:ss）'
+                  }]
+                }
+              }
+            ">控件类型</th>
+            <th data-options="field:'inputLen',width:60,align:'right',editor:'numberbox'">控件长度</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+    <div title="子表关系列表" style="padding:10px">
+      <table id="dgFormTableRelation" class="easyui-datagrid" rownumbers="true" style="width:auto;height:330px;" data-options="singleSelect: false, checkOnSelect: false, toolbar: [
+          {
+            text: '添加关系表',
+            iconCls: 'rsutiltree glyphicon glyphicon-plus',
+            handler: function(){
+              rs.dev.formlist.formTableRelationAddField();
+            }
+          },{
+            text: '删除关系表',
+            iconCls: 'rsutiltree glyphicon glyphicon-trash',
+            handler: function(){
+              rs.dev.formlist.formTableRelationDeleteField();
+            }
+          }],
+      onBeginEdit: function(index){
+        var editor = $(this).datagrid('getEditor', {
+          index: index,
+          field: 'colName'
+        });
+
+        $(editor.target).textbox({
+          onChange: function(newValue){
+            $(this).textbox('setValue', newValue.toUpperCase());
+          }
+        })
+
+        var editor = $(this).datagrid('getEditor', {
+          index: index,
+          field: 'mainColName'
+        });
+
+        $(editor.target).textbox({
+          onChange: function(newValue){
+            $(this).textbox('setValue', newValue.toUpperCase());
+          }
+        })
+      }">
+        <thead>
+          <tr>
+            <th data-options="field:'ck',checkbox:true"></th>
+            <th data-options="field:'fcflag',width:100,editor:'textbox'">功能编码</th>
+            <th data-options="field:'tablename',width:100,editor:'textbox'">子表名称</th>
+            <th data-options="field:'colName',width:100,editor:'textbox'">子表关联字段</th>
+            <th data-options="field:'mainColName',width:100,editor:'textbox'">主表关联字段</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- window -->
+<div id="windowForm" class="easyui-window" title="菜单链接" data-options="modal:true,closed:true,iconCls:'rsutiltree glyphicon glyphicon-floppy-saved'" style="width:500px;height:120px;padding:10px;">
+  <div>
+    <input id="inputFormAddress" class="easyui-textbox" data-options="readonly:true" style="width:100%"></input>
+  </div>
+  <div style="text-align: right; margin-top: 10px;">
+    <a id="btnCopyFormAddress" href="javascript:void(0)" class="easyui-linkbutton" iconCls="rsutiltree glyphicon glyphicon-copy">复制</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="rsutiltree glyphicon glyphicon-remove" onclick="javascript:$('#windowForm').window('close')">关闭</a>
+  </div>
+</div>
+
+<div id="dlgAddCustbFormlist" class="easyui-dialog" title="自定义按钮" style="width:780px;height:420px;padding:10px 20px" closed="true" data-options="modal:true">
+  <table id="dgAddCustbFormlist" class="easyui-datagrid" data-options="rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true', toolbar: [
+  {
+    text: '新增',
+    iconCls: 'rsutiltree glyphicon glyphicon-plus',
+    handler: function(){
+      rs.dev.formlist.addCustbCustb();
+    }
+  },
+  {
+    text: '修改',
+    iconCls: 'rsutiltree glyphicon glyphicon-edit',
+    handler: function(){
+      rs.dev.formlist.editCustbCustb();
+    }
+  },
+  {
+    text: '删除',
+    iconCls: 'rsutiltree glyphicon glyphicon-trash',
+    handler: function(){
+      rs.dev.formlist.deleteCustbCustb();
+    }
+  }
+]">
+    <thead>
+      <tr>
+        <th data-options="field:'id', width:'100', hidden:'true'">id</th>
+        <th data-options="field:'code', width:'100', halign:'center'">编码</th>
+        <th data-options="field:'icon', width:'100', halign:'center', formatter:
+          function(value){
+            return '<a><i class= \''+ value + '\'></i></a>';
+          }">图标</th>
+        <th data-options="field:'name', width:'100', halign:'center'">名称</th>
+        <th data-options="field:'zt', width:'100', halign:'center', formatter: 
+          function(value) {
+            switch(value) {
+              case 'N':
+              return '未激活';
+            case 'Y':
+              return '已激活';
+            default:
+              return value;
+            }
+          }
+        ">状态</th>
+        <th data-options="field:'ys', width:'100', halign:'center'">样式</th>
+        <th data-options="field:'exp', width:'100', halign:'center'">过期时间</th>
+        <th data-options="field:'bdid', width:'100', hidden:'true'">表单ID</th>
+        <th data-options="field:'czlx', width:'100', halign:'center'">操作类型</th>
+        <th data-options="field:'xh', width:'100', halign:'center'">序号</th>
+      </tr>
+    </thead>
+  </table>
+</div>
+
+<div id="dlgCustbCustb" class="easyui-dialog" style="width:400px;height:350px;padding:10px 20px" closed="true" data-options="modal:true, buttons:[{
+  text: '保存',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.formlist.saveCustbCustb(this)
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgCustbCustb').dialog('close');
+  } 
+}]">
+  <form id="fmCustbCustb" method="post">
+    <div class="fitem" hidden="true">
+      <label style="text-align: right">ID：</label>
+      <input name="id" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">按钮编码：</label>
+      <input name="code" class="easyui-textbox" required="true">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">图标：</label>
+      <input name="icon" editable="false" class="easyui-combobox" data-options="valueField:'class',textField:'icon', showItemIcon: true, panelHeight:'100px', url:'${base}/data/fontawesome.json', method:'get', formatter: function(row){
+        return '<a><i class= \''+ row.class + '\'></i><span>  '+row.icon+'</span></a>'
+      }">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">按钮名称：</label>
+      <input name="name" class="easyui-textbox" required="true">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">按钮状态：</label>
+      <input id="buttonZt" class="easyui-combobox" editable="false" panelHeight="auto" name="zt" data-options="valueField: 'value', textField: 'text', data: [{value:'N', text: '未激活'},{value:'Y', text: '已激活'}], value:'N'">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">按钮样式：</label>
+      <input id="buttonYs" class="easyui-combobox" editable="false" panelHeight="auto" name="ys" data-options="valueField: 'value', textField: 'text', data: [{value:'link', text: 'link'},{value:'button', text: 'button'}], value:'link'">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">按钮过期时间：</label>
+      <input name="exp" class="easyui-textbox">
+    </div>
+    <div class="fitem" hidden="true">
+      <label style="text-align: right">表单ID：</label>
+      <input name="bdid" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">动作类型：</label>
+      <input id="buttonCzlx" class="easyui-combobox" editable="false" panelHeight="auto" name="czlx" data-options="valueField: 'value', textField: 'text', data: [{value:'js', text: 'js'},{value:'action', text: 'action'}], value:'js'">
+    </div>
+    <div class="fitem">
+      <label style="text-align: right">序号：</label>
+      <input name="xh" class="easyui-textbox" required="true">
+    </div>
+  </form>
+</div>
+
+<div id="dlgJsFormlist" class="easyui-dialog" style="width:570px;height:440px;padding:10px 20px" closed="true" title="JS增强" data-options="modal:true, buttons:[{
+  text: '保存',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.formlist.saveJs(this)
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgJsFormlist').dialog('close');
+  } 
+}]">
+  <form id="fmJsFormlist" method="post">
+    <div class="fitem" hidden="true">
+      <label>ID：</label>
+      <input name="id" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>增强类型：</label>
+      <input class="easyui-combobox" editable="false" panelHeight="auto" name="jslx" data-options="onSelect: rs.dev.formlist.getJS, valueField: 'value', textField: 'text', data:[{value:'form', text: 'form'},{value: 'list', text: 'list'}], value: 'form'">
+    </div>
+    <div class="fitem">
+      <label>增强JS：</label>
+      <input name="js" class="easyui-textbox" data-options="multiline:true" style="height: 300px; width: 400px">
+    </div>
+  </form>
+</div>
+<div id="dlgSqlFormlist" class="easyui-dialog" style="width:570px;height:440px;padding:10px 20px" closed="true" title="sql增强" data-options="modal:true, buttons:[{
+  text: '保存',
+  iconCls: 'rsutiltree glyphicon glyphicon-ok',
+  handler: function(){
+    rs.dev.formlist.saveSql(this)
+  }
+},{
+  text: '取消',
+  iconCls: 'rsutiltree glyphicon glyphicon-remove',
+  handler: function(){
+    $('#dlgSqlFormlist').dialog('close');
+  } 
+}]">
+  <form id="fmSqlFormlist" method="post">
+    <div class="fitem" hidden="true">
+      <label>ID：</label>
+      <input name="id" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>页面控件编码：</label>
+      <input name="code" id="buttonCode" editable="false" class="easyui-combobox" data-options="valueField:'code',textField:'name', panelHeight:'auto', onSelect: rs.dev.formlist.getSql">
+    </div>
+    <div class="fitem">
+      <label>描述：</label>
+      <input name="nr" class="easyui-textbox">
+    </div>
+    <div class="fitem">
+      <label>增强Sql：</label>
+      <input name="sql" class="easyui-textbox" data-options="multiline:true" style="height: 250px; width: 400px">
+    </div>
+  </form>
+</div>
+
+<!-- JavaScript -->
+<script type="text/javascript">
+rs.dev.formlist = jQuery.extend({}, rs.dev.default, (function($) {
+
+  var tabsIdForm = 'tabsForm';
+  var urlForm = '/cg/form';
+  var methodForm;
+  var dgIdForm = 'dgForm';
+  var fmIdForm = 'formForm';
+  var dlgIdForm = 'dlgForm';
+  var dgFormDetailPageId = 'dgFormDetailPage'; // 页面属性Tab
+  var dgFormDetailDictId = 'dgFormDetailDict'; // 校验字典Tab
+  var dgFormDetailSearchColumns = 'dgFormSearchColumns'; // 查询条件
+  var dgFormTableRelation = 'dgFormTableRelation';//主子表关系
+  var formPageViewMode;
+  var formFlagEnableDnd = false;
+  var searchFormId = 'searchFormFormList';
+  var dlgIdAddCustbFormlist = 'dlgAddCustbFormlist';
+  var dlgIdCustbCustb = 'dlgCustbCustb';
+  var fmIdCustbCustb = 'fmCustbCustb';
+  var dgIdAddCustbFormlist = 'dgAddCustbFormlist';
+  var urlCustbCustb;
+  var methodCustbCustb;
+  var bdid;
+  var fmIdJsFormlist = 'fmJsFormlist';
+  var fmIdSqlFormlist = 'fmSqlFormlist';
+  var dlgIdJsFormlist = 'dlgJsFormlist';
+  var dlgIdSqlFormlist = 'dlgSqlFormlist';
+  var dlgIdDeleteForm = 'dlgDeleteForm';
+  initFormlistPage();
+
+  function initTabsInFormPage() {
+    rs.util.tabsSelectByIndex(tabsIdForm, 0);
+  }
+
+  function initFormlistPage() {
+    rs.util.mapTabTitleDialogId([dlgIdForm, dlgIdDeleteForm, dlgIdAddCustbFormlist, dlgIdCustbCustb, dlgIdJsFormlist, dlgIdSqlFormlist]);
+    rs.util.datagridAutoSelectFirstRow(dgIdForm);
+
+    $('#' + tabsIdForm).tabs({
+      onSelect: function(title, index) {
+        switch (index) {
+          case 0:
+            // 页面属性Tab
+            rs.util.datagridBeginEditAll(dgFormDetailPageId);
+            break;
+          case 1:
+            // 校验字典Tab
+            rs.util.datagridSetData(dgFormDetailDictId, rs.util.datagridGetData(dgFormDetailPageId))
+            rs.util.datagridBeginEditAll(dgFormDetailDictId);
+            break;
+          case 2:
+            // 查询条件列
+            rs.util.datagridBeginEditAll(dgFormDetailSearchColumns);
+            break;
+          case 3:
+            rs.util.datagridBeginEditAll(dgFormTableRelation);
+            break;
+        }
+      },
+      onUnselect: function(title, index) {
+        switch (index) {
+          case 0:
+            rs.util.datagridAcceptChanges(dgFormDetailPageId);
+            break;
+          case 1:
+            rs.util.datagridAcceptChanges(dgFormDetailDictId);
+            break;
+          case 2:
+            rs.util.datagridAcceptChanges(dgFormDetailSearchColumns);
+            break;
+          case 3:
+            rs.util.datagridAcceptChanges(dgFormTableRelation);
+            break;
+        }
+      }
+    });
+  }
+
+  function addForm() {
+    formPageViewMode = rs.constant.VIEWMODE_ADD;
+    $('#inputFormTableName').textbox('readonly', false);
+    $('#inputFormFcflag').textbox('readonly', false);
+    $('#buildTableType').textbox('enable');
+    $('#' + dlgIdForm).dialog('open').dialog('setTitle', '新增表单');
+    initTabsInFormPage();
+    $('#' + fmIdForm).form('reset');
+    $('#'+dgFormDetailPageId).datagrid({data: []});        
+    $('#' + dgFormDetailSearchColumns).datagrid({data: []});
+    $('#' + dgFormTableRelation).datagrid({data: []});
+    formFlagEnableDnd = false;
+  }
+
+  function editForm(index) {
+    if (index !== undefined) {
+      $('#' + dgIdForm).datagrid('selectRow', index)
+    }
+    var selectedRow = rs.util.datagridGetSelected(dgIdForm);
+    if (selectedRow) {
+      urlForm = '/cg/form/' + selectedRow.id;
+      rs.http.get({
+        url: urlForm,
+        success: function(data) {
+          formPageViewMode = rs.constant.VIEWMODE_EDIT;
+          $('#inputFormTableName').textbox('readonly');
+          $('#inputFormFcflag').textbox('readonly');
+          $('#buildTableType').textbox('disable');
+          $('#' + dlgIdForm).dialog('open').dialog('setTitle', '修改表单');
+          initTabsInFormPage();
+
+          if(data.sql){
+            data.type = 'auto'
+          }else{
+            data.type = 'manual';
+          }
+
+          $('#' + fmIdForm).form('load', data);
+          // $('#'+dgFormDetailPageId).datagrid('loadData',data.columns);
+
+          $('#' + dgFormDetailPageId).datagrid({
+            data: data.columns
+          });
+
+          if(data.conditions)
+            // $('#'+dgFormDetailSearchColumns).datagrid('loadData',data.conditions);
+            $('#' + dgFormDetailSearchColumns).datagrid({
+              data: data.conditions
+            });
+          if(data.subtables)
+            // $('#'+dgFormTableRelation).datagrid('loadData',data.subtables);
+            $('#' + dgFormTableRelation).datagrid({
+              data: data.subtables
+            });
+          // rs.util.tabsSelectByIndex(tabsIdForm, 0);
+          rs.util.datagridBeginEditAll(dgFormDetailPageId);
+          formFlagEnableDnd = false;
+        }
+      });
+    }else{
+      rs.util.messageInfo(rs.constant.MESSAGE_EDIT);
+    }
+  }
+
+  function saveForm(button) {
+    if ($('#' + fmIdForm).form('validate')) {
+      $(button).linkbutton('disable');
+      var formData = rs.util.formGetData(fmIdForm) || {};
+      $('#' + dgFormDetailPageId).datagrid('acceptChanges');
+      formData.columns = rs.util.datagridGetData(dgFormDetailPageId);
+      if (!validateFormColumn(formData.columns)) {
+        rs.util.datagridBeginEditAll(dgFormDetailPageId);
+        $(button).linkbutton('enable');
+        return;
+      }
+      $('#' + dgFormTableRelation).datagrid('acceptChanges');
+      formData.subtables = rs.util.datagridGetData(dgFormTableRelation);
+      if (!validateTableRelationColumn(formData.subtables)) {
+        rs.util.datagridBeginEditAll(dgFormTableRelation);
+        $(button).linkbutton('enable');
+        return;
+      }
+
+      $('#' + dgFormDetailDictId).datagrid('acceptChanges');
+      $('#' + dgFormDetailSearchColumns).datagrid('acceptChanges');
+      formData.conditions = rs.util.datagridGetData(dgFormDetailSearchColumns);
+      if (!validateTableSearchColumn(formData.conditions)) {
+        rs.util.datagridBeginEditAll(dgFormDetailSearchColumns);
+        $(button).linkbutton('enable');
+        return;
+      }
+
+      var msg;
+      if (formPageViewMode === rs.constant.VIEWMODE_ADD) {
+        urlForm = '/cg/form'
+        methodForm = 'POST';
+        msg = '创建成功';
+      } else if (formPageViewMode === rs.constant.VIEWMODE_EDIT) {
+        methodForm = 'PUT';
+        msg = '修改成功';
+      }
+      rs.http.ajaxJson({
+        url: urlForm,
+        method: methodForm,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo(msg);
+            $('#' + dlgIdForm).dialog('close');
+            $('#' + dgIdForm).datagrid('reload');
+          }
+        }
+      }).fail(function(){
+          rs.util.datagridBeginEditAll(dgFormDetailPageId);
+          rs.util.tabsSelectByIndex(tabsIdForm,0);
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function validateFormColumn(columns) {
+    for (var i = 0, len = columns.length; i < len; ++i) {
+      var column = columns[i];
+      if (!column.colName) {
+        rs.util.messageError('字段名称不能为空');
+        return false;
+      }
+      if (!column.colMark) {
+        rs.util.messageError('字段备注不能为空');
+        return false;
+      }
+      if(!column.colType){
+        rs.util.messageError('字段类型不能为空');
+        return false;
+      }
+    };
+    return true;
+  }
+
+  function validateTableRelationColumn(columns){
+    for (var i = 0, len = columns.length; i < len; ++i) {
+      var column = columns[i];
+      if (!column.tablename) {
+        rs.util.messageError('子表名称不能为空');
+        return false;
+      }
+      if (!column.colName) {
+        rs.util.messageError('子表关联字段不能为空');
+        return false;
+      }
+      if (!column.mainColName) {
+        rs.util.messageError('主表关联字段不能为空');
+        return false;
+      }
+    };
+    return true;
+  }
+
+  function validateTableSearchColumn(columns){
+    for (var i = 0, len = columns.length; i < len; ++i) {
+      var column = columns[i];
+      if (!column.colMark) {
+        rs.util.messageError('条件字段备注不能为空');
+        return false;
+      }
+      if (!column.colType) {
+        rs.util.messageError('条件字段类型不能为空');
+        return false;
+      }
+    };
+    return true;  
+  }
+
+  function deleteForm() {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      rs.util.messageConfirm("确认删除选表["+row.tablename+"]？","提示",function(){
+        methodForm = 'DELETE';
+        urlForm = '/cg/form/' + row.id;
+        rs.http.ajaxJson({
+          url: urlForm,
+          method: methodForm,
+          data: {
+            version: row.version,
+            forceDrop: false
+          },
+          success: function(result) {
+            $('#' + dlgIdDeleteForm).dialog('close');
+            rs.util.messageInfo('删除成功');
+            $('#' + dgIdForm).datagrid('reload');
+          }
+        });
+      });
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_DELETE);
+    }
+  }
+
+  function clickTestForm(index) {
+    if(index !== undefined){
+      $('#' + dgIdForm).datagrid('selectRow', index);
+    }
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row && row.id) {
+      if (row.tabletype === 1 || row.tabletype === 2) {
+        rs.util.navTabsAddInAdminPage({
+          title: '表单数据列表[' + row.tabledescp + ']',
+          href: '/admin/moduleTest/page/autolist/' + row.id
+        });
+      }
+    } else {
+      rs.util.messageInfo(rs.constant.MESSAGE_TEST);
+    }
+  }
+
+  function popMenuAddressWindow(index) {
+    if(index !== undefined){
+      $('#' + dgIdForm).datagrid('selectRow', index);
+    }
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row && (row.tabletype === 1 || row.tabletype ===2 )) {
+      $('#windowForm').window({
+        title: '菜单链接［' + row.tablename + ']'
+      });
+      var dataContent = '/admin/moduleTest/page/autolist/' + row.id;
+      $('#inputFormAddress').textbox('setText', dataContent);
+      $('#windowForm').window('open');
+
+      // 复制
+      var clipboard = new Clipboard('#btnCopyFormAddress', {
+        text: function() {
+          return dataContent;
+        }
+      });
+      clipboard.on('success', function(e) {
+        rs.util.messageInfo('复制成功');
+        $('#windowForm').window('close');
+      });
+      clipboard.on('error', function(e) {
+        rs.util.messageError('复制失败，请手工复制');
+      });
+    }
+  }
+
+  function queryForm() {
+    $('#' + dgIdForm).datagrid('load');
+  }
+
+  function addCustb() {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      bdid = row.id;
+      var d1 = getCustbList(bdid);
+      $.when(d1).done(function(result) {
+        $('#' + dlgIdAddCustbFormlist).dialog('open');
+        $('#' + dlgIdAddCustbFormlist).dialog('setTitle','自定义按钮['+ row.tablename+ ']');
+        $('#' + dgIdAddCustbFormlist).datagrid('loadData', result.rows);
+        rs.util.datagridAutoSelectFirstRow(dgIdAddCustbFormlist);
+      });
+    }
+  }
+
+  function getCustbList(bdid) {
+    return rs.http.get({
+      url: '/cg/form/' + bdid + '/buttons'
+    });
+  }
+
+  function addJs() {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      bdid = row.id;
+      $('#' + dlgIdJsFormlist).dialog('open');
+      $('#' + dlgIdJsFormlist).dialog('setTitle','增强JS['+ row.tablename + ']');
+      getJS({
+        value: 'form'
+      })
+    }
+  }
+
+  function getJS(record) {
+    return rs.http.postJson({
+      url: '/cg/form/js/getlist/' + bdid,
+      data: {
+        jslx: record.value
+      }
+    }).done(function(result) {
+      if (result.rows && result.rows.length > 0) {
+        $('#' + fmIdJsFormlist).form('load', result.rows[0]);
+      } else {
+        $('#' + fmIdJsFormlist).form('load', {
+          jslx: record.value,
+          js: '',
+          id: ''
+        });
+      }
+    });
+  }
+
+  function addCustbCustb() {
+    $('#' + dlgIdCustbCustb).dialog('open').dialog('setTitle', '新增');
+    $('#' + fmIdCustbCustb).form('clear');
+    $('#buttonZt').combobox('setValue', 'N');
+    $('#buttonYs').combobox('setValue', 'link');
+    $('#buttonCzlx').combobox('setValue', 'js');
+    urlCustbCustb = "/cg/form/custbt";
+    methodCustbCustb = "POST";
+  }
+
+  function editCustbCustb() {
+    var row = $('#' + dgIdAddCustbFormlist).datagrid('getSelected');
+    if (row) {
+      $('#' + dlgIdCustbCustb).dialog('open').dialog('setTitle', '修改');
+      $('#' + fmIdCustbCustb).form('load', row);
+      urlCustbCustb = '/cg/form/custbt/' + row.id;
+      methodCustbCustb = 'PUT';
+    }
+  }
+
+  function deleteCustbCustb() {
+    var row = $('#' + dgIdAddCustbFormlist).datagrid('getSelected');
+    if (row) {
+      var paramArray = [];
+      paramArray.push(row.id);
+      rs.http.ajaxJson({
+        url: '/cg/form/custbt',
+        method: 'DELETE',
+        data: paramArray
+      }).done(function(result) {
+        rs.util.messageInfo("删除成功");
+        var d1 = getCustbList(bdid);
+        $.when(d1).done(function(result) {
+          $('#' + dgIdAddCustbFormlist).datagrid('loadData', result.rows);
+        });
+      });
+    }
+  }
+
+  function saveCustbCustb(button) {
+    if ($('#' + fmIdCustbCustb).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdCustbCustb);
+      formData['bdid'] = bdid;
+
+      rs.http.ajaxJson({
+        url: urlCustbCustb,
+        method: methodCustbCustb,
+        data: formData,
+        success: function(result) {
+          if (result.errorMsg) {
+            rs.util.messageError(result.errorMsg);
+          } else {
+            rs.util.messageInfo("sucess");
+            $('#' + dlgIdCustbCustb).dialog('close');
+            var d1 = getCustbList(bdid);
+            $.when(d1).done(function(result) {
+              $('#' + dgIdAddCustbFormlist).datagrid('loadData', result.rows);
+            });
+          }
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }
+  }
+
+  function saveJs(button) {
+    if ($('#' + fmIdJsFormlist).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdJsFormlist);
+      formData['bdid'] = bdid;
+
+      var id = formData['id'];
+      if (id == "") {
+        rs.http.ajaxJson({
+          url: '/cg/form/js',
+          method: 'POST',
+          data: formData,
+          success: function(result) {
+            if (result.errorMsg) {
+              rs.util.messageError(result.errorMsg);
+            } else {
+              rs.util.messageInfo("sucess");
+              $('#' + dlgIdJsFormlist).dialog('close');
+            }
+          }
+        }).always(function() {
+          $(button).linkbutton('enable');
+        });
+      } else {
+        rs.http.ajaxJson({
+          url: '/cg/form/js/' + id,
+          method: 'PUT',
+          data: formData,
+          success: function(result) {
+            if (result.errorMsg) {
+              rs.util.messageError(result.errorMsg);
+            } else {
+              rs.util.messageInfo("sucess");
+              $('#' + dlgIdJsFormlist).dialog('close');
+            }
+          }
+        }).always(function() {
+          $(button).linkbutton('enable');
+        });
+      }
+    }
+  }
+
+  function addSql() {
+    var row = $('#' + dgIdForm).datagrid('getSelected');
+    if (row) {
+      bdid = row.id;
+      getCustbList(bdid).done(function(result) {
+        var custButtons = [{
+          code: 'add',
+          name: '新增'
+        }, {
+          code: 'edit',
+          name: '修改'
+        }, {
+          code: 'delete',
+          name: '删除'
+        }];
+        $.each(result.rows, function(index, item) {
+          custButtons.push(item);
+        });
+
+        $('#buttonCode').combobox({
+          data: custButtons
+        });
+
+        $('#buttonCode').combobox('setValue', 'add');
+
+        $('#' + dlgIdSqlFormlist).dialog('open');
+        $('#' + dlgIdSqlFormlist).dialog('setTitle','增强sql['+ row.tablename +']');
+      });
+    }
+  }
+
+  function saveSql(button) {
+    if ($('#' + fmIdSqlFormlist).form('validate')) {
+      $(button).linkbutton('disable');
+
+      var formData = rs.util.formGetData(fmIdSqlFormlist);
+      formData['bdid'] = bdid;
+      var id = formData['id'];
+      if (id == "") {
+        rs.http.ajaxJson({
+          url: '/cg/form/sql',
+          method: 'POST',
+          data: formData,
+          success: function(result) {
+            if (result.errorMsg) {
+              rs.util.messageError(result.errorMsg);
+            } else {
+              rs.util.messageInfo("sucess");
+              $('#' + dlgIdSqlFormlist).dialog('close');
+            }
+          }
+        }).always(function() {
+          $(button).linkbutton('enable');
+        });
+      } else {
+        rs.http.ajaxJson({
+          url: '/cg/form/sql/' + id,
+          method: 'PUT',
+          data: formData,
+          success: function(result) {
+            if (result.errorMsg) {
+              rs.util.messageError(result.errorMsg);
+            } else {
+              rs.util.messageInfo("sucess");
+              $('#' + dlgIdSqlFormlist).dialog('close');
+            }
+          }
+        }).always(function() {
+          $(button).linkbutton('enable');
+        });
+      }
+    }
+  }
+
+  function getSql(record) {
+    return rs.http.postJson({
+      url: '/cg/form/sql/getlist/' + bdid,
+      data: {
+        code: record.code
+      }
+    }).done(function(result) {
+      if (result.rows && result.rows.length > 0) {
+        $('#' + fmIdSqlFormlist).form('load', result.rows[0]);
+      } else {
+        $('#' + fmIdSqlFormlist).form('load', {
+          code: record.code,
+          sql: '',
+          id: '',
+          nr: ''
+        });
+      }
+    });
+  }
+
+  function formateIcon(value) {
+    var index = value.lastIndexOf('-');
+    var src = value.substring(index + 1);
+    console.log(src);
+    return '<img src="${base}/lib/jquery-easyui/themes/icons/' + src + '.png"/>';
+  }
+
+  function parseSql(button){
+    var sqlStr = $('#inputFormSql').textbox('getText');
+    if ($.trim(sqlStr)!='') {
+      $(button).linkbutton('disable');
+      rs.http.ajaxJson({
+        url: '/cg/onlinefc/sql',
+        method: 'POST',
+        data: {
+          sql: sqlStr
+        },
+        success: function(result) {
+          //添加默认值
+          if(result.columns){
+            $.each(result.columns, function(index, column){
+              column.isFormdisp = 'Y';
+              column.isGriddisp = 'Y';
+              column.inputType = 'text'; 
+              column.colType ='string';
+              column.inputLen = 120;
+            });
+          }
+          $('#'+dgFormDetailPageId).datagrid('loadData',result.columns);
+          $('#'+dgFormDetailSearchColumns).datagrid('loadData',result.conditions);
+          rs.util.tabsSelectByIndex(tabsIdForm, 0);
+          rs.util.datagridBeginEditAll(dgFormDetailPageId);
+        },
+        error: function(result){
+          rs.util.messageError(result.responseJSON.verrors[0].errorMsg);
+        }
+      }).always(function() {
+        $(button).linkbutton('enable');
+      });
+    }  
+  }
+
+  function buildTableTypeChange(record){
+    if(record.value === 'auto'){
+      $('#inputFormSql').textbox("enable");
+      $('#div-input-sql').css("display","block");
+      $('#tabsForm').tabs('enableTab',2);
+    }else if(record.value === 'manual'){
+      $('#inputFormSql').textbox('clear').textbox("disable");
+      $('#div-input-sql').css("display","none");
+      $('#tabsForm').tabs('disableTab',2);
+      $('#'+dgFormDetailSearchColumns).datagrid({data: []});
+    }
+  }
+
+  function TableLXChange(record) {
+    var value = record.value;
+    if (value === 1) {
+      $('#tabsForm').tabs('disableTab',3);
+      $('#'+ dgFormTableRelation).datagrid({data:[]})
+    } else if (value === 2) {
+      $('#tabsForm').tabs('enableTab',3);
+    } else if(value === 3){
+      $('#tabsForm').tabs('disableTab',3);
+      $('#'+ dgFormTableRelation).datagrid({data:[]}) 
+    }
+  }
+
+  function TreeValueChange(record){
+    if (record.value === 'Y'){
+      $('#fidColumn').textbox("enable"); 
+      $('#nodeColumn').textbox("enable"); 
+      $('#div-fidColumn').css("display","inline-block");
+      $('#div-nodeColumn').css("display","inline-block");
+    }else if(record.value === 'N'){
+      $('#fidColumn').textbox('clear').textbox("disable");
+      $('#nodeColumn').textbox('clear').textbox("disable");
+      $('#div-fidColumn').css("display","none");
+      $('#div-nodeColumn').css("display","none");
+    }
+  }
+
+  function formAddTableField() {
+    var tableName = $('#inputFormTableName').textbox('getValue');
+    if ($.trim(tableName)===""){
+      rs.util.messageInfo('请先维护功能表明');
+      $('#inputFormTableName').focus();
+      return;
+    }
+    if (endEditing()) {
+      $('#' + dgFormDetailPageId).datagrid('appendRow', {
+        // 设置默认值
+        colName: '',
+        colMark: '',
+        colLen: 32,
+        colDecpoint: 0,
+        colDefval: '',
+        colType: 'string',
+        colIspk: 'N',
+        colIsnull: 'Y',
+        isFormdisp: 'Y',
+        isGriddisp: 'Y',
+        inputType: 'text',
+        inputLen: 120,
+        isSearch: 'N',
+        searchType: 'normal',
+        extjson: ''
+      });
+      var datagridEditIndex = $('#' + dgFormDetailPageId).datagrid('getRows').length - 1;
+      $('#' + dgFormDetailPageId).datagrid('beginEdit', datagridEditIndex);
+    }
+  }
+
+  function formDeleteTableField() {
+    rs.util.datagridDeleteSelections(dgFormDetailPageId);
+  }
+
+  function formTableRelationAddField(){
+    if (endEditing()) {
+      $('#' + dgFormTableRelation).datagrid('appendRow', {});
+      var datagridEditIndex = $('#' + dgFormTableRelation).datagrid('getRows').length - 1;
+      $('#' + dgFormTableRelation).datagrid('beginEdit', datagridEditIndex);
+    }
+  }
+
+  function formTableRelationDeleteField(){
+    rs.util.datagridDeleteSelections(dgFormTableRelation);  
+  }
+
+  function formEnableDnd() {
+    if (!formFlagEnableDnd) {
+      $('#' + dgFormDetailPageId).datagrid({
+        onBeforeDrag: function() {
+          return true;
+        }
+      });
+      $('#' + dgFormDetailPageId).datagrid('acceptChanges');
+      formFlagEnableDnd = true;
+    } else {
+      $('#' + dgFormDetailPageId).datagrid({
+        onBeforeDrag: function() {
+          return false;
+        }
+      });
+      rs.util.datagridBeginEditAll(dgFormDetailPageId);
+      formFlagEnableDnd = false;
+    }
+  }
+
+  function autoGetColumns(){
+    var tableName = $('#inputFormTableName').textbox('getValue');
+    if($.trim(tableName)!=""){
+      rs.http.get({
+        url: '/cg/form/'+ tableName +'/columns',
+        success: function(result){
+          $('#'+dgFormDetailPageId).datagrid('loadData', result.rows);
+          rs.util.datagridBeginEditAll(dgFormDetailPageId);
+        },
+        error: function(result){
+          rs.util.messageError(result.responseJSON.verrors[0].errorMsg);
+        }
+      });
+    }
+  }
+
+  function endEditing() {
+    return true;
+  }
+
+  return {
+    addSql: addSql,
+    getSql: getSql,
+    saveSql: saveSql,
+    addJs: addJs,
+    saveJs: saveJs,
+    getJS: getJS,
+    addCustb: addCustb,
+    addCustbCustb: addCustbCustb,
+    editCustbCustb: editCustbCustb,
+    saveCustbCustb: saveCustbCustb,
+    deleteCustbCustb: deleteCustbCustb,
+    addForm: addForm,
+    editForm: editForm,
+    saveForm: saveForm,
+    deleteForm: deleteForm,
+    clickTestForm: clickTestForm,
+    popMenuAddressWindow: popMenuAddressWindow,
+    TableLXChange: TableLXChange,
+    parseSql: parseSql,
+    buildTableTypeChange: buildTableTypeChange,
+    formAddTableField: formAddTableField,
+    formDeleteTableField: formDeleteTableField,
+    formEnableDnd: formEnableDnd,
+    formTableRelationAddField: formTableRelationAddField,
+    formTableRelationDeleteField: formTableRelationDeleteField,
+    autoGetColumns: autoGetColumns,
+    TreeValueChange: TreeValueChange
+  };
+
+})(jQuery));
+</script>

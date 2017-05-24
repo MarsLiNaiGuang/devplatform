@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+      
+<mapper namespace="com.rs.devplatform.persistent.mapper.BmpzMapper">
+
+	<update id="executSql">
+		 ${sql}
+	</update>
+	
+	<update id="logicDeleteSql" parameterType="java.util.List">
+		update jcsj_bmpz set bmpz_deleted='T' where bmpz_id in
+		<foreach collection="idList" index="index" item="id" open="("
+                 separator="," close=")">
+                 #{id}
+        </foreach>
+	</update>
+	
+	<select id="selectSql" resultType="java.util.HashMap" >
+		select bmpz_id AS id, bmpz_version as version,  
+        WHERE  ${sql}
+        
+	</select>
+
+
+	
+	
+</mapper>

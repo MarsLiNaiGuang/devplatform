@@ -1,0 +1,61 @@
+<#assign base=request.contextPath />
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="renderer" content="webkit">
+  <title></title>
+  <script src="${base}${urls.getForLookupPath('/js/layim.js')}""></script>
+</head>
+
+<body>
+  <div id="im">
+    <div id="xximmm" class="xxim_main">
+      <div class="xxim_top" id="xxim_top">
+        <!-- <div class="xxim_search">
+                    <i></i>
+                    <input id="xxim_searchkey" />
+                    <span id="xxim_closesearch">×</span>
+                </div> -->
+        <div class="xxim_tabs" id="xxim_tabs">
+          <span class="xxim_tabfriend tabone" type="U" title="好友"><i></i><s class="unread nocount"></s></span>
+          <span class="xxim_tabgroup tabgroup" type="G" title="群组"><i></i><s class="unread nocount"></s></span>
+          <!-- <span class="xxim_latechat" title="all"><i></i></span> -->
+        </div>
+        <ul class="xxim_list" style="display:block"></ul>
+        <ul class="xxim_list xxim_list_group">
+          <div class="delete_button_group">
+            <p class="delete">删除群组</p>
+            <p class="confirm-delete">确认删除</p>
+            <p class="cancle-delete">取消删除</p>
+          </div>
+        </ul>
+        <ul class="xxim_list"></ul>
+        <!--  <ul class="xxim_list xxim_searchmain" id="xxim_searchmain"></ul> -->
+      </div>
+      <ul class="xxim_bottom" id="xxim_bottom">
+        <li class="xxim_online" id="xxim_online">
+          <i class="xxim_nowstate"></i>
+          <span id="xxim_onlinetex">在线</span>
+          <div class="xxim_setonline">
+            <span><i></i>在线</span>
+            <span class="xxim_setoffline"><i></i>下线</span>
+          </div>
+        </li>
+        <li class="xxim_mymsg" id="xxim_mymsg" title="创建讨论组">
+          <i id="createGroup">+</i>
+        </li>
+        <li class="xxim_toall" id="xxim_toall" title="群发消息" data-id="all" type="all">
+          <img src="http://tp1.sinaimg.cn/1571889140/180/40030060651/1" class="xxim_oneface" style="visibility: hidden;">
+          <span class="xxim_onename" style="visibility: hidden;">群发消息</span>
+        </li>
+        <li class="xxim_hide" id="xxim_hide"><i></i></li>
+        <li id="xxim_on" class="xxim_icon xxim_on"></li>
+        <div class="layim_min" id="layim_min"></div>
+      </ul>
+    </div>
+  </div>
+</body>
+
+</html>

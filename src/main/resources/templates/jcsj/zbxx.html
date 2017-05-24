@@ -1,0 +1,380 @@
+<#assign base=request.contextPath />
+<div class="easyui-layout" fit="true" border="false">
+  <div id="zbxxHeadc7edd97407424d1f99242adf9239e10b" class="easyui-panel" data-options="region:'north',collapsed:false,split:true" style="height: 110px">
+    <div id="toolbarBtnc7edd97407424d1f99242adf9239e10b" class="rs-datagrid-toolbar btn-toolbar" role="toolbar">
+    </div> 
+    <div id="searchc7edd97407424d1f99242adf9239e10b">
+    </div>
+  </div>
+
+  <div class= "easyui-panel" data-options="region:'west'" style="width:20%">
+    <ul id="zbxxflc7edd97407424d1f99242adf9239e10b" class="easyui-tree" data-options="onSelect:rs.dev.autolist_c7edd97407424d1f99242adf9239e10b.selectNode">
+    </ul>
+  </div>
+
+  <div class="easyui-panel" data-options="region:'center'" style="width:80%">
+    <table id="dgc7edd97407424d1f99242adf9239e10b"></table>
+  </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="modalc7edd97407424d1f99242adf9239e10b">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Modal title</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmc7edd97407424d1f99242adf9239e10b" method="post" class="row">
+        </form>
+        <div id="tabc7edd97407424d1f99242adf9239e10b">
+        </div>
+      </div>
+      <div class="modal-footer" id="dlgButtonsc7edd97407424d1f99242adf9239e10b">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 上传数据dialog -->
+<div class="modal fade" tabindex="-1" role="dialog" id="uploadModalc7edd97407424d1f99242adf9239e10b">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">上传数据</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmUploadc7edd97407424d1f99242adf9239e10b" method="post"">
+          <div>
+            <label>选择文件:</label>
+            <input id="inputUploadc7edd97407424d1f99242adf9239e10b" name="importfile" class="easyui-filebox" style="width: 250px" data-options="buttonText: '请选择'" required="true">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="uploadButtonsc7edd97407424d1f99242adf9239e10b">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="uploadConfirmBtnc7edd97407424d1f99242adf9239e10b">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 附件管理dialog -->
+<div class="modal fade" tabindex="-1" role="dialog" id="listAttachementc7edd97407424d1f99242adf9239e10b">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">附件管理</h4>
+      </div>
+      <div class="modal-body" style="height: 300px">
+        <table id="attachementListc7edd97407424d1f99242adf9239e10b" class="easyui-datagrid" pagination="true" rownumbers="true" fitColumns="true" singleSelect="false" fit="true" toolbar="#fileAttachToolbarc7edd97407424d1f99242adf9239e10b">
+          <thead>
+            <tr>
+              <th data-options="field:'ck',checkbox:true"></th>
+              <th field="name" width="200" halign="center">文件名</th>
+              <th field="remark" width="200" halign="center">备注</th>
+              <th field="verno" width="300" halign="center" data-options="                formatter: function(value, row, index) {
+                  if (value == null) {
+                    return '--';
+                  } else {
+                    return value;
+                  }
+                }">版本</th>
+              <th field="categoryid" width="300" halign="center" data-options="            formatter: function(value, data) {
+                  switch (value) {
+                    case 'A':
+                      {
+                        return '重要';
+                      };
+                      break;
+                    case 'B':
+                      {
+                        return '次要';
+                      }
+                      break;
+                    case 'C':
+                      {
+                        return '一般';
+                      };
+                      break;
+                    default:
+                      {
+                        return '--';
+                      }
+                  }
+                }">重要性</th>
+              <th field="opt" width="200" halign="center" data-options="formatter: function(value, data, index){
+              return '[<li style=\'display:inline\' onclick=\'rs.dev.autolist.openDlg('+index+')\'><span>修改</span></li>]'
+              +'[<li style=\'display:inline\' onclick=\'rs.dev.autolist.deleteFile('+index+')\'><span>删除</span></li>]'
+              }">操作</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div id="fileAttachToolbarc7edd97407424d1f99242adf9239e10b">
+    <a id="addFileAttachc7edd97407424d1f99242adf9239e10b" href="javascript:void(0)" class="easyui-linkbutton" iconCls="rsutiltree glyphicon glyphicon-plus" plain="true">新增</a>
+  </div>
+</div>
+
+<!-- 上传附件 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="optAttachementc7edd97407424d1f99242adf9239e10b">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">上传附件</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmAddAttachementc7edd97407424d1f99242adf9239e10b" method="post"">
+          <div class="fitem">
+            <label style="text-align: right">选择文件：</label>
+            <input name="addfile" class="easyui-filebox" required="true" data-options="buttonText:'请选择', onChange: function(newVal, oldVal) {
+            var name = newVal.split('.')[0];
+              $('#attachementNamec7edd97407424d1f99242adf9239e10b').textbox('setValue', name);
+              rs.dev.autolist_c7edd97407424d1f99242adf9239e10b.onFileChange(newVal);
+            }">
+          </div>
+          <div class="fitem">
+            <label style="text-align: right">自定义文件名：</label>
+            <input name="name" class="easyui-textbox" required="true" id="attachementNamec7edd97407424d1f99242adf9239e10b">
+          </div>
+          <div class="fitem">
+            <label style="text-align: right">重要性：</label>
+            <input name="category" editable="false" class="easyui-combobox" panelHeight="auto" data-options="value:'A', textField: 'text', valueField: 'value', data: [{value: 'A', text: '重要'},{value: 'B', text: '次要'},{value: 'C', text: '一般'}]" required="true">
+          </div>
+          <div class="fitem">
+            <label style="text-align: right">备注：</label>
+            <input name="remark" class="easyui-textbox" data-options="multiline: true">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="uploadButtonsc7edd97407424d1f99242adf9239e10b">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="optAttachConfirmBtnc7edd97407424d1f99242adf9239e10b">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 修改附件管理 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="updateAttachementc7edd97407424d1f99242adf9239e10b">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">修改附件</h4>
+      </div>
+      <div class="modal-body">
+        <form id="fmUploadAttachementc7edd97407424d1f99242adf9239e10b" method="post"">
+          <div class="fitem">
+            <label style="text-align: right">选择文件：</label>
+            <input name="updatefile" class="easyui-filebox" required="true" data-options="onChange:rs.dev.autolist_c7edd97407424d1f99242adf9239e10b.onFileChange">
+          </div>
+          <div class="fitem">
+            <label style="text-align: right">重要性：</label>
+            <input name="category" editable="false" class="easyui-combobox" panelHeight="auto" data-options="value:'A', textField: 'text', valueField: 'value', data: [{value: 'A', text: '重要'},{value: 'B', text: '次要'},{value: 'C', text: '一般'}]" required="true">
+          </div>
+          <div class="fitem">
+            <label style="text-align: right">备注：</label>
+            <input name="remark" class="easyui-textbox" data-options="multiline: true">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" id="uploadButtonsc7edd97407424d1f99242adf9239e10b">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="updateAttachConfirmBtnc7edd97407424d1f99242adf9239e10b">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+rs.dev.autolist_c7edd97407424d1f99242adf9239e10b = jQuery.extend({}, rs.dev.default, (function($) {
+
+  // 初始化
+  var configId = 'c7edd97407424d1f99242adf9239e10b';
+  var urlConfig = '/jcsj/zbxx/' + configId; // 后台API配置
+  // rs.util.navTreeRefresh('zbxxflc7edd97407424d1f99242adf9239e10b');
+  rs.http.ajaxJson({
+    url: '/jcsj/bmpz/query',
+    method: 'POST',
+    data: {
+      id: 'b02614a98bb645e9ad15374f2ad988b5'
+    },
+    success: function(result) {
+      if (result.errorMsg) {
+        $.messager.show({
+          title: 'Error',
+          msg: result.errorMsg
+        });
+      } else {
+        var treeData = rs.util.transFormTreeData('id', 'sjbm', result.rows);
+        rs.util.formateTreeDataSuitTree(treeData,'mc');
+        // rs.util.sortTreeDataArray(treeData);
+        $('#zbxxflc7edd97407424d1f99242adf9239e10b').tree({
+          data: treeData
+        });
+      }
+    }
+  });
+
+  rs.util.mapTabIndexConfigId(configId);
+  rs.http.get({
+    url: urlConfig
+  }).done(function(configData) {
+    configData.baseUrl = '${base}';
+
+    // 后台API配置
+    configData.queryUrl = '/jcsj/zbxx/query';
+    configData.queryMethod = 'POST';
+    configData.addUrl = '/jcsj/zbxx/add';
+    configData.addMethod = 'POST';
+    configData.updateUrl = '/jcsj/zbxx/update';
+    configData.updateMethod = 'PUT';
+    configData.deleteUrl = '/jcsj/zbxx';
+    configData.deleteMethod = 'DELETE';
+    configData.relateTableUrl = '/jcsj/zbxx/query/relationtable';
+    configData.relateTableMethod = 'POST';
+    configData.buttonUrl = '/jcsj/zbxx/buttons/' + configData.master.id ;
+    configData.buttonMethod = 'GET';
+    configData.jsUrl = '/jcsj/zbxx/js/' + configData.master.id;
+    configData.jsMethod = 'POST';
+    configData.sqlGetUrl = '/jcsj/zbxx/sql/' + configData.master.id;
+    configData.sqlGetMethod = 'POST';
+    configData.sqlExecuteUrl = '/jcsj/zbxx/sql/execute/' + configData.master.id;
+    configData.sqlExecuteMethod = 'POST';
+
+    configData.onBeforeLoad = function(param){
+      var $formSearch = $('#searchfm' + configId, rs.util.getSelectedTab());
+      var searchparam = rs.dev.autolist.getFormattedFormData($formSearch, configData.master.ziduanList);
+      $.extend(param, searchparam);
+      param.id = configId;
+      var node = $('#zbxxflc7edd97407424d1f99242adf9239e10b').tree('getSelected');
+      if (node) 
+        // param.fid = node.id; 
+        param.bmid = node.id;  
+    }
+
+    rs.global.currentConfigId = configId;
+    rs.global['data_' + configId] = configData;
+    addClickEventListener(configId, configData);
+    addCloseModalEventListener(configId, configData);
+    autoCreatePage(configData);
+  });
+
+  function addClickEventListener(configId, configData){
+    $('#uploadConfirmBtn'+ configId).on('click', function(){
+      rs.dev.autolist.saveUploadData(configData);
+    })
+
+    $('#addFileAttach'+configId).on('click',function(){
+      $('#optAttachement'+configId,rs.util.getSelectedTab()).modal('show');
+      $('#fmAddAttachement' + configId).form('clear');
+      // $('h4', $('#optAttachement'+configId)).text('新增');
+      configData.viewMode = rs.constant.VIEWMODE_ADD;
+    })
+
+    $('#optAttachConfirmBtn'+configId).on('click', function(){
+      rs.dev.autolist.saveAddAttachement(configData, undefined, this);
+    })
+
+    $('#updateAttachConfirmBtn'+configId).on('click', function(){
+      rs.dev.autolist.saveAddAttachement(configData, undefined, this);
+    })
+  }
+
+  function addCloseModalEventListener(configId, configData){
+    $('#modal'+configId).on('shown.bs.modal', function (e) {
+      var configDetail = configData.detail;
+      if (configDetail && configDetail.length > 0) {
+        $('#'+configId + '_'+ configDetail[0].id).datagrid('resize');
+      }
+    })
+
+    $('#listAttachement'+configId).on('shown.bs.modal', function (e) {
+      $('#attachementList'+configId).datagrid('resize');
+    })
+  }
+
+  //获取文件扩展配置
+  function fetchFileExtSupport(){
+    return rs.http.postJson({
+      url:'/admin/datadict/list',
+      data:{
+        "name": "扩展名",
+        "cdtype": ""
+      }
+    })
+  }
+
+  //选择文件完成
+  function onFileChange(newVal){
+    fetchFileExtSupport().done(function(res){
+      if(res && res.total === 0){
+        return;
+      }
+      rs.http.get({
+        url:'/admin/datadict/' + res.rows[0].id
+      }).done(function(res){
+        if(res && res.cdvals.length >0){
+          var ext = newVal.split('.')[1];
+          var temp = [];
+          $.each(res.cdvals,function(index,item){
+            temp.push(item.cdval);
+          })
+          if(temp.indexOf(ext) === -1){
+            rs.util.messageError('该文件格式不支持');
+            $('.sweet-alert').css('zIndex',10000);
+            $('#fileUploadBtn${FOLDER_ID!}').linkbutton('disable');
+            $('#saveFileEdit${FOLDER_ID!}').linkbutton('disable');
+          }else{
+            $('#fileUploadBtn${FOLDER_ID!}').linkbutton('enable');
+            $('#saveFileEdit${FOLDER_ID!}').linkbutton('enable');
+          }
+        }
+      })
+    })
+  }
+
+  function autoCreatePage(configData) {
+    var configMaster = configData.master;
+    var configId = configMaster.id;
+    var d1 = rs.dev.autolist.getDataDictBySql(configData);
+    var d2 = rs.dev.autolist.getVisibleAndOptArray(configData);
+    var d3 = rs.dev.autolist.getFormJsList(configData);
+    var d4 = rs.dev.autolist.getCustomerButtons(configData);
+    $.when(d1, d2, d3, d4).done(function() {
+      if (configMaster.istree === "Y") {
+        rs.dev.autolist.createTreeGrid(configData);
+      } else {
+        rs.dev.autolist.createDataGrid(configData);
+      }
+      rs.dev.autolist.createSearchForm(configData);
+      rs.dev.autolist.getToolbarButtons(configData).done(function() {
+        var userNormalButtons = configData.userNormalButtons;
+        var userCustomerButtons = configData.userCustomerButtons;
+
+        console.log('normal', userNormalButtons);
+        console.log('customer', userCustomerButtons);
+
+        rs.dev.autolist.addToolbarButtons($('#toolbarBtn'+configId), configData);
+        rs.dev.autolist.refreshForm(configData);
+      })
+    })
+  }
+
+  function selectNode(node){
+    console.log(node.id);
+    $('#dg' + configId, rs.util.getSelectedTab()).datagrid('reload');
+  }
+
+  return {
+    onFileChange:onFileChange,
+    selectNode: selectNode
+  }
+
+})(jQuery));
+</script>
